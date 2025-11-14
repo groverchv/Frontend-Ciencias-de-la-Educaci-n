@@ -1,0 +1,47 @@
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  background-color: #0b0a34;
+  background-image: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.25),
+      rgba(0, 0, 0, 0.55)
+    ),
+    var(--app-bg);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+}
+
+.app-main {
+  flex: 1;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+img {
+  max-width: 100%;
+  display: block;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .app-shell {
+    background-attachment: scroll;
+  }
+}

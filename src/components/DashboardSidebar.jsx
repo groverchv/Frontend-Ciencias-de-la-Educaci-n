@@ -1,0 +1,70 @@
+import React from "react";
+import { Layout, Menu } from "antd";
+import {
+  DashboardOutlined,
+  UserOutlined,
+  FileTextOutlined,
+  CalendarOutlined,
+  SettingOutlined,
+  MenuOutlined,
+} from "@ant-design/icons";
+import { useNavigate, useLocation } from "react-router-dom";
+
+const { Sider } = Layout;
+
+export default function DashboardSidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const menuItems = [
+    {
+      key: "/dashboard",
+      icon: <DashboardOutlined />,
+      label: "Inicio",
+    },
+    {
+      key: "/dashboard/usuarios",
+      icon: <UserOutlined />,
+      label: "Gestionar Usuarios",
+    },
+    {
+      key: "/dashboard/menus",
+      icon: <MenuOutlined />,
+      label: "Gestionar Menús",
+    },
+ 
+    {
+      key: "/dashboard/sub_menus",
+      icon: <CalendarOutlined />,
+      label: "Gestionar Sub Menús",
+    },
+    {
+      key: "/dashboard/configuracion",
+      icon: <SettingOutlined />,
+      label: "Configuración",
+    },
+  ];
+
+  const handleMenuClick = ({ key }) => {
+    navigate(key);
+  };
+
+  return (
+    <Sider
+      breakpoint="lg"
+      collapsedWidth="0"
+      style={{
+        background: "#fff",
+        boxShadow: "2px 0 8px rgba(0,0,0,0.1)",
+      }}
+    >
+      <Menu
+        mode="inline"
+        selectedKeys={[location.pathname]}
+        items={menuItems}
+        onClick={handleMenuClick}
+        style={{ height: "100%", borderRight: 0 }}
+      />
+    </Sider>
+  );
+}

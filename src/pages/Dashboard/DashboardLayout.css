@@ -1,0 +1,66 @@
+/* =========================================
+   1. Layout Principal (Dashboard Shell)
+   ========================================= */
+.dashboard-layout {
+  min-height: 100vh;
+}
+
+.dashboard-content {
+  padding: 24px;
+  background: #f0f2f5; /* Fondo gris claro estándar */
+  min-height: calc(100vh - 64px);
+}
+
+/* =========================================
+   2. Estilos Genéricos para Vistas Admin
+   ========================================= */
+.admin-container {
+  width: 100%;
+}
+
+/* Encabezado de la tarjeta (Título + Botón) */
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* Agrupador para icono y texto del título */
+.admin-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Estilo para el icono grande azul del título */
+.admin-header-icon {
+  font-size: 24px;
+  color: #1890ff;
+}
+
+/* Asegurar que los títulos de Antd no tengan margen extra */
+.admin-header h2.ant-typography {
+  margin: 0 !important;
+  color: #001529;
+}
+
+/* =========================================
+   3. Responsividad
+   ========================================= */
+@media (max-width: 768px) {
+  .dashboard-content {
+    padding: 16px;
+  }
+
+  .admin-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  /* En móvil, el botón ocupa todo el ancho */
+  .admin-header .ant-btn {
+    width: 100%; 
+  }
+}

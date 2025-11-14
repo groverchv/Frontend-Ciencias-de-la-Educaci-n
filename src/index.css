@@ -1,0 +1,13 @@
+/* Ocupa toda la altura y elimina los bordes blancos del body */
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;                /* quita el margen blanco nativo */
+  background: #ffffff;      /* color de fondo global (cambia si quieres) */
+}
+
+/* Opcional: saneo básico */
+*, *::before, *::after { box-sizing: border-box; }
+img { max-width: 100%; display: block; }
