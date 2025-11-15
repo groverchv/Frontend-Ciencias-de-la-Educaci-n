@@ -1,269 +1,206 @@
 // src/components/GestionarContenido.jsx
-// --- CORREGIDO: Error 'Select is not defined' ---
+// --- REEMPLAZA TU ARCHIVO ANTERIOR CON ESTE ---
 
 import React, { useState, useEffect } from "react";
 import {
-  Table,
   Button,
-  Space,
-  Modal,
-  Form,
+  Select,
   message,
-  Popconfirm,
-  Tag,
   Card,
   Typography,
+  Spin,
   Input,
-  InputNumber,
-  Switch,
-  Select, // <-- AQUÍ ESTÁ LA CORRECCIÓN
+  Row,
+  Col,
+  Empty,
+  Popconfirm
 } from "antd";
 import {
   PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
+  SaveOutlined,
+  FontSizeOutlined,
   FileTextOutlined,
-  OrderedListOutlined,
+  FileOutlined,
+  DeleteOutlined,
+  ReadOutlined,
+  DownSquareOutlined,
+  DragOutlined // Para futuro drag-and-drop
 } from "@ant-design/icons";
 
-import ContenidoService from "../../services/ContenidoService.js";
+// --- ¡NUESTROS ÚNICOS SERVICIOS! ---
 import Sub_MenuService from "../../services/Sub_MenuService.js";
-import TituloService from "../../services/TituloService.js";
-import ArchivoService from "../../services/ArchivoService.js";
-import Sub_TituloService from "../../services/Sub_TituloService.js";
-import TextoService from "../../services/TextoService.js";
+import BloqueService from "../../services/BloqueService.js";
 
 const { Title } = Typography;
+const { Option } = Select;
 const { TextArea } = Input;
-const { Option } = Select; // <-- Esta línea ahora funciona
+
+// --- Componentes de Edición para cada Bloque ---
+// Estos componentes son "crear y editar directamente"
+
+const EditorTitulo = ({ block, onChange }) => (
+  <Input
+    size="large"
+    placeholder="Escribe el Título..."
+    style={{ fontSize: "1.75rem", fontWeight: "bold", border: 'none', paddingLeft: 0, color: '#1f1f1f' }}
+    value={block.datosJson.texto || ""}
+    onChange={(e) => onChange(block.id, { ...block.datosJson, texto: e.target.value })}
+  />
+);
+
+const EditorSubTitulo = ({ block, onChange }) => (
+  <Input
+    size="large"
+    placeholder="Escribe el Subtítulo..."
+    style={{ fontSize: "1.3rem", fontWeight: "600", border: 'none', paddingLeft: 0, color: '#3b3b3b' }}
+    value={block.datosJson.texto || ""}
+    onChange={(e) => onChange(block.id, { ...block.datosJson, texto: e.target.value })}
+  />
+);
+
+const EditorTexto = ({ block, onChange }) => (
+  <TextArea
+    placeholder="Escribe el párrafo de texto..."
+    autoSize
+    style={{ fontSize: "1rem", border: 'none', paddingLeft: 0, lineHeight: 1.6 }}
+    value={block.datosJson.descripcion || ""}
+    onChange={(e) => onChange(block.id, { ...block.datosJson, descripcion: e.target.value })}
+  />
+);
+
+const EditorArchivo = ({ block, onChange }) => {
+  // Un editor de "Archivo" más completo
+  return (
+    <Card size="small" style={{ background: '#fafafa' }}>
+      <Row gutter={16} align="middle">
+        <Col><FileOutlined style={{ fontSize: 24, color: '#888' }} /></Col>
+        <Col flex={1}>
+          <Input
+            addonBefore="Nombre"
+            placeholder="reporte.pdf"
+            value={block.datosJson.nombre || ""}
+            onChange={(e) => onChange(block.id, { ...block.datosJson, nombre: e.target.value })}
+            style={{ marginBottom: 8 }}
+          />
+          <Input
+            addonBefore="URL"
+            placeholder="/uploads/reporte.pdf"
+            value={block.datosJson.url || ""}
+            onChange={(e) => onChange(block.id, { ...block.datosJson, url: e.target.value })}
+          />
+        </Col>
+      </Row>
+    </Card>
+  );
+};
+// --- FIN de Componentes de Edición ---
+
 
 export default function GestionarContenido() {
-  const [contenidos, setContenidos] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingContenido, setEditingContenido] = useState(null);
-  const [form] = Form.useForm();
-
   const [subMenus, setSubMenus] = useState([]);
+  const [selectedSubMenu, setSelectedSubMenu] = useState(null);
+  
+  // --- ¡El estado clave! Un solo array para todos los bloques ---
+  const [blocks, setBlocks] = useState([]); 
+  
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchContenidos();
-    fetchSubMenus();
+    // Cargar solo los SubMenus para el selector
+    const loadSubMenus = async () => {
+      try {
+        const data = await Sub_MenuService.getAllSubMenu();
+        setSubMenus(Array.isArray(data) ? data : []);
+      } catch (error) {
+        message.error("Error al cargar SubMenús");
+      }
+    };
+    loadSubMenus();
   }, []);
 
-  const fetchContenidos = async () => {
+  // Cargar bloques cuando el usuario selecciona un SubMenu
+  const handleMenuChange = async (sub_menu_id) => {
+    setSelectedSubMenu(sub_menu_id);
+    if (!sub_menu_id) {
+      setBlocks([]);
+      return;
+    }
+    
     setLoading(true);
     try {
-      const data = await ContenidoService.getAllContenidos();
-      setContenidos(Array.isArray(data) ? data : []);
+      // Llama al Endpoint 1 (GET)
+      const data = await BloqueService.getBlockesBySubMenu(sub_menu_id);
+      setBlocks(Array.isArray(data) ? data : []);
     } catch (error) {
       message.error(error.toString());
-      setContenidos([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchSubMenus = async () => {
+  // --- ESTO ES "EDITAR TODOS A LA VEZ" ---
+  // Actualiza el bloque específico en el array 'blocks' del estado
+  const handleBlockChange = (blockId, newDatosJson) => {
+    setBlocks(currentBlocks =>
+      currentBlocks.map(b =>
+        b.id === blockId
+          ? { ...b, datosJson: newDatosJson } // Ojo: el backend Java serializa 'datosJson'
+          : b
+      )
+    );
+  };
+
+  // --- ESTO ES "CREAR DIRECTAMENTE" / "AGREGAR VARIAS VECES" ---
+  const addBlock = (tipo) => {
+    const newBlock = {
+      // Usamos un ID temporal para el 'key' de React.
+      // El backend lo ignorará y asignará uno real.
+      id: `temp_${Date.now()}`, 
+      tipoBloque: tipo,
+      orden: blocks.length,
+      estado: true,
+      datosJson: {}, // Inicia vacío
+    };
+    
+    // Valores por defecto
+    if (tipo === 'titulo') newBlock.datosJson = { texto: "" };
+    if (tipo === 'subtitulo') newBlock.datosJson = { texto: "" };
+    if (tipo === 'texto') newBlock.datosJson = { descripcion: "" };
+    if (tipo === 'archivo') newBlock.datosJson = { nombre: "", url: "" };
+
+    setBlocks([...blocks, newBlock]);
+  };
+  
+  const deleteBlock = (blockId) => {
+    setBlocks(currentBlocks => currentBlocks.filter(b => b.id !== blockId));
+  };
+
+  // --- ESTO ES "UN SOLO BOTÓN PARA GUARDAR" ---
+  const handleSave = async () => {
+    setSaving(true);
     try {
-      const subMenusData = await Sub_MenuService.getAllSubMenu();
-      setSubMenus(Array.isArray(subMenusData) ? subMenusData : []);
-    } catch (error) {
-      message.error("Error al cargar SubMenús: " + error.toString());
-    }
-  };
-
-  const handleOpenModal = (contenido = null) => {
-    setEditingContenido(contenido);
-    if (contenido) {
-      form.setFieldsValue({
-        sub_menu_id: contenido.sub_menu_id?.id,
-        orden: contenido.orden,
-        estado: contenido.estado,
-        titulo_nombre: contenido.titulo_id?.nombre,
-        sub_titulo_nombre: contenido.sub_titulo_id?.nombre,
-        texto_descripcion: contenido.texto_id?.descripcion,
-        archivo_nombre: contenido.archivo_id?.nombre,
-        archivo_descripcion: contenido.archivo_id?.Descripcion,
-        archivo_url: contenido.archivo_id?.url,
-      });
-    } else {
-      form.resetFields();
-      form.setFieldsValue({ estado: true });
-    }
-    setModalVisible(true);
-  };
-
-  const handleCloseModal = () => {
-    setModalVisible(false);
-    setEditingContenido(null);
-    form.resetFields();
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-
-      if (editingContenido) {
-        // --- MODO ACTUALIZACIÓN ---
-        await Promise.all([
-          TituloService.updateTitulo(editingContenido.titulo_id.id, { 
-            nombre: values.titulo_nombre, 
-            estado: values.estado 
-          }),
-          Sub_TituloService.updateSubTitulo(editingContenido.sub_titulo_id.id, { 
-            nombre: values.sub_titulo_nombre, 
-            estado: values.estado 
-          }),
-          TextoService.updateTexto(editingContenido.texto_id.id, { 
-            descripcion: values.texto_descripcion, 
-            estado: values.estado 
-          }),
-          ArchivoService.updateArchivo(editingContenido.archivo_id.id, {
-            nombre: values.archivo_nombre,
-            Descripcion: values.archivo_descripcion,
-            url: values.archivo_url,
-            estado: values.estado
-          }),
-        ]);
-
-        await ContenidoService.updateContenido(editingContenido.id, {
-          orden: values.orden,
-          estado: values.estado,
-          sub_menu_id: { id: values.sub_menu_id },
-          titulo_id: { id: editingContenido.titulo_id.id },
-          sub_titulo_id: { id: editingContenido.sub_titulo_id.id },
-          texto_id: { id: editingContenido.texto_id.id },
-          archivo_id: { id: editingContenido.archivo_id.id },
-        });
-        
-        message.success("Contenido actualizado exitosamente");
-
-      } else {
-        // --- MODO CREACIÓN ---
-        const [
-          tituloRes, 
-          subTituloRes, 
-          textoRes, 
-          archivoRes
-        ] = await Promise.all([
-          TituloService.createTitulo({ 
-            nombre: values.titulo_nombre, 
-            estado: values.estado 
-          }),
-          Sub_TituloService.createSubTitulo({ 
-            nombre: values.sub_titulo_nombre, 
-            estado: values.estado 
-          }),
-          TextoService.createTexto({ 
-            descripcion: values.texto_descripcion, 
-            estado: values.estado 
-          }),
-          ArchivoService.createArchivo({
-            nombre: values.archivo_nombre,
-            Descripcion: values.archivo_descripcion,
-            url: values.archivo_url,
-            estado: values.estado
-          }),
-        ]);
-
-        const nuevoTituloId = tituloRes.id;
-        const nuevoSubTituloId = subTituloRes.id;
-        const nuevoTextoId = textoRes.id;
-        const nuevoArchivoId = archivoRes.id;
-
-        const payload = {
-          orden: values.orden,
-          estado: values.estado,
-          sub_menu_id: { id: values.sub_menu_id },
-          titulo_id: { id: nuevoTituloId },
-          sub_titulo_id: { id: nuevoSubTituloId },
-          texto_id: { id: nuevoTextoId },
-          archivo_id: { id: nuevoArchivoId },
-        };
-        
-        await ContenidoService.createContenido(payload);
-        message.success("Contenido creado exitosamente");
-      }
+      // Re-asignamos el 'orden' antes de guardar, por si se borraron/movieron
+      const blocksToSave = blocks.map((block, index) => ({
+        ...block,
+        orden: index,
+      }));
       
-      handleCloseModal();
-      fetchContenidos();
+      // Llama al Endpoint 2 (POST)
+      await BloqueService.saveBlocksForSubMenu(selectedSubMenu, blocksToSave);
+      message.success("¡Página guardada exitosamente!");
+      
+      // Recargar los datos desde la BD para obtener IDs reales
+      // y limpiar los 'temp_id'
+      handleMenuChange(selectedSubMenu); 
+      
     } catch (error) {
-      console.error("Error en handleSubmit:", error);
       message.error(error.toString());
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await ContenidoService.deleteContenido(id);
-      message.success("Contenido eliminado exitosamente");
-      fetchContenidos();
-    } catch (error) {
-      message.error(error.toString());
-    }
-  };
-
-  const handleToggleEstado = async (record) => {
-    try {
-      const payload = {
-        ...record,
-        estado: !record.estado, 
-      };
-      await ContenidoService.updateContenido(record.id, payload);
-      message.success("Estado actualizado exitosamente");
-      fetchContenidos();
-    } catch (error) {
-      message.error(error.toString());
-    }
-  };
-
-  const columns = [
-    { title: "ID", dataIndex: "id", key: "id", width: 70 },
-    { title: "Orden", dataIndex: "orden", key: "orden", width: 80 },
-    {
-      title: "SubMenú",
-      dataIndex: ["sub_menu_id", "titulo"], 
-      key: "submenu",
-      render: (titulo) => titulo || <Tag>N/A</Tag>, 
-    },
-    {
-      title: "Título",
-      dataIndex: ["titulo_id", "nombre"],
-      key: "titulo",
-      render: (nombre) => nombre || <Tag>N/A</Tag>,
-    },
-    {
-      title: "Archivo",
-      dataIndex: ["archivo_id", "nombre"],
-      key: "archivo",
-      render: (nombre) => nombre || <Tag>N/A</Tag>,
-    },
-    {
-      title: "Estado",
-      dataIndex: "estado",
-      key: "estado",
-      render: (estado, record) => (
-        <Tag color={estado ? "green" : "red"} style={{ cursor: "pointer" }} onClick={() => handleToggleEstado(record)}>
-          {estado ? "Activo" : "Inactivo"}
-        </Tag>
-      ),
-    },
-    {
-      title: "Acciones",
-      key: "acciones",
-      fixed: 'right',
-      width: 200,
-      render: (_, record) => (
-        <Space size="small">
-          <Button type="primary" icon={<EditOutlined />} size="small" onClick={() => handleOpenModal(record)}>Editar</Button>
-          <Popconfirm title="¿Está seguro de eliminar?" onConfirm={() => handleDelete(record.id)} okText="Sí" cancelText="No">
-            <Button type="primary" danger icon={<DeleteOutlined />} size="small">Eliminar</Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
 
   return (
     <div className="admin-container">
@@ -271,78 +208,124 @@ export default function GestionarContenido() {
         <div className="admin-header">
           <div className="admin-title-wrapper">
             <FileTextOutlined className="admin-header-icon" />
-            <Title level={2}>Gestión de Contenido</Title>
+            <Title level={2}>Gestión de Contenido por Bloques</Title>
           </div>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()} size="large">
-            Nuevo Contenido
+          <Button 
+            type="primary" 
+            icon={<SaveOutlined />} 
+            onClick={handleSave} 
+            size="large"
+            loading={saving}
+            disabled={!selectedSubMenu || saving}
+          >
+            Guardar Cambios
           </Button>
         </div>
+        
+        <Title level={4}>Seleccione la página (SubMenú) a editar:</Title>
+        <Select
+          style={{ width: "100%", marginBottom: 24 }}
+          placeholder="Seleccione un SubMenú"
+          onChange={handleMenuChange}
+          value={selectedSubMenu}
+          allowClear
+        >
+          {subMenus.map(sm => <Option key={sm.id} value={sm.id}>{sm.titulo}</Option>)}
+        </Select>
 
-        <Table columns={columns} dataSource={contenidos} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} scroll={{ x: 1000 }} />
-      </Card>
+        <hr style={{ border: 'none', borderBottom: '1px solid #f0f0f0', margin: '24px 0' }} />
 
-      <Modal 
-        title={editingContenido ? "Editar Contenido" : "Nuevo Contenido"} 
-        open={modalVisible} 
-        onCancel={handleCloseModal} 
-        footer={null} 
-        width={800}
-      >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          
-          <Form.Item name="sub_menu_id" label="Página (SubMenú) a la que pertenece" rules={[{ required: true, message: "Requerido" }]}>
-            <Select placeholder="Seleccione un SubMenú" allowClear>
-              {subMenus.map(sm => <Option key={sm.id} value={sm.id}>{sm.titulo}</Option>)}
-            </Select>
-          </Form.Item>
-
-          <Card title="Atributos del Título" size="small" style={{ marginBottom: 16 }}>
-            <Form.Item name="titulo_nombre" label="Texto del Título" rules={[{ required: true, message: "Requerido" }]}>
-              <Input placeholder="Ej: Quiénes Somos" />
-            </Form.Item>
-          </Card>
-          
-          <Card title="Atributos del SubTítulo" size="small" style={{ marginBottom: 16 }}>
-            <Form.Item name="sub_titulo_nombre" label="Texto del SubTítulo" rules={[{ required: true, message: "Requerido" }]}>
-              <Input placeholder="Ej: Nuestra Misión" />
-            </Form.Item>
-          </Card>
-
-          <Card title="Atributos del Texto" size="small" style={{ marginBottom: 16 }}>
-            <Form.Item name="texto_descripcion" label="Contenido del Párrafo" rules={[{ required: true, message: "Requerido" }]}>
-              <TextArea rows={4} placeholder="Escriba el párrafo aquí..." />
-            </Form.Item>
-          </Card>
-
-          <Card title="Atributos del Archivo" size="small" style={{ marginBottom: 16 }}>
-            <Form.Item name="archivo_nombre" label="Nombre del Archivo" rules={[{ required: true, message: "Requerido" }]}>
-              <Input placeholder="Ej: reporte_2025.pdf" />
-            </Form.Item>
-            <Form.Item name="archivo_url" label="URL del Archivo" rules={[{ required: true, message: "Requerido" }]}>
-              <Input placeholder="Ej: /uploads/reporte_2025.pdf" />
-            </Form.Item>
-            <Form.Item name="archivo_descripcion" label="Descripción (opcional)">
-              <Input placeholder="Descripción corta del archivo" />
-            </Form.Item>
-          </Card>
-
-          <Card title="Configuración de Contenido" size="small">
-             <Form.Item name="orden" label="Orden" rules={[{ required: true, message: "Requerido" }]}>
-              <InputNumber prefix={<OrderedListOutlined />} style={{ width: "100%" }} placeholder="1" />
-            </Form.Item>
-            <Form.Item name="estado" label="Estado" valuePropName="checked">
-              <Switch checkedChildren="Activo" unCheckedChildren="Inactivo" />
-            </Form.Item>
-          </Card>
-
-          <Form.Item style={{ marginTop: 24, textAlign: 'right' }}>
-            <Space>
-              <Button onClick={handleCloseModal}>Cancelar</Button>
-              <Button type="primary" htmlType="submit">{editingContenido ? "Actualizar" : "Crear"}</Button>
+        {/* --- INICIO DEL EDITOR DE BLOQUES --- */}
+        {!selectedSubMenu ? (
+          <Empty description="Por favor, seleccione una página para comenzar a editar." />
+        ) : loading ? (
+          <div style={{ textAlign: 'center', padding: 40 }}><Spin size="large" /></div>
+        ) : (
+          <div className="block-editor-container">
+            {blocks.length === 0 ? (
+              <Empty description="Esta página está vacía. ¡Agrega tu primer bloque!" />
+            ) : (
+              blocks.map(block => (
+                <div key={block.id} className="block-wrapper">
+                  <div className="block-drag-handle">
+                     {/* <DragOutlined /> (Para futuro drag-and-drop) */}
+                  </div>
+                  <div className="block-content">
+                    {/* El "Panel" que renderiza el editor correcto */}
+                    {block.tipoBloque === 'titulo' && <EditorTitulo block={block} onChange={handleBlockChange} />}
+                    {block.tipoBloque === 'subtitulo' && <EditorSubTitulo block={block} onChange={handleBlockChange} />}
+                    {block.tipoBloque === 'texto' && <EditorTexto block={block} onChange={handleBlockChange} />}
+                    {block.tipoBloque === 'archivo' && <EditorArchivo block={block} onChange={handleBlockChange} />}
+                  </div>
+                  <div className="block-controls">
+                    <Popconfirm 
+                      title="¿Eliminar este bloque?" 
+                      onConfirm={() => deleteBlock(block.id)}
+                      okText="Sí"
+                      cancelText="No"
+                    >
+                      <Button 
+                        type="text" 
+                        danger 
+                        icon={<DeleteOutlined />} 
+                        size="small"
+                      />
+                    </Popconfirm>
+                  </div>
+                </div>
+              ))
+            )}
+            
+            {/* --- ESTO ES "ESCOGER PANELES" --- */}
+            <Title level={5} style={{ marginTop: 30, paddingTop: 20, borderTop: '1px solid #f0f0f0' }}>
+              Añadir nuevo bloque (Panel):
+            </Title>
+            <Space wrap>
+              <Button icon={<FontSizeOutlined />} onClick={() => addBlock('titulo')}>Título</Button>
+              <Button icon={<DownSquareOutlined />} onClick={() => addBlock('subtitulo')}>Subtítulo</Button>
+              <Button icon={<ReadOutlined />} onClick={() => addBlock('texto')}>Texto</Button>
+              <Button icon={<FileOutlined />} onClick={() => addBlock('archivo')}>Archivo</Button>
             </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+
+          </div>
+        )}
+        {/* --- FIN DEL EDITOR DE BLOQUES --- */}
+
+      </Card>
+      
+      {/* Añadimos un poco de CSS para que funcione */}
+      <style>{`
+        .block-wrapper {
+          display: flex;
+          align-items: flex-start;
+          padding: 12px 8px;
+          margin-bottom: 12px;
+          border-radius: 8px;
+          transition: background 0.2s ease;
+        }
+        .block-wrapper:hover {
+          background: #f7f7f7;
+        }
+        .block-drag-handle {
+          padding: 8px 4px;
+          color: #aaa;
+          cursor: grab;
+          opacity: 0.5;
+        }
+        .block-content {
+          flex-grow: 1;
+          margin-left: 8px;
+        }
+        .block-controls {
+          margin-left: 16px;
+          padding-top: 4px;
+          opacity: 0.5;
+          transition: opacity 0.2s ease;
+        }
+        .block-wrapper:hover .block-controls {
+          opacity: 1;
+        }
+      `}</style>
     </div>
   );
 }

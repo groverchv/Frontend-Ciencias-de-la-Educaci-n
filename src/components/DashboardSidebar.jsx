@@ -7,6 +7,8 @@ import {
   CalendarOutlined,
   SettingOutlined,
   MenuOutlined,
+  SafetyOutlined,
+  KeyOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -28,29 +30,35 @@ export default function DashboardSidebar() {
       label: "Gestionar Usuarios",
     },
     {
+      key: "/dashboard/roles",
+      icon: <SafetyOutlined />,
+      label: "Gestionar Roles",
+    },
+    {
+      key: "/dashboard/permisos",
+      icon: <KeyOutlined />,
+      label: "Gestionar Permisos",
+    },
+    {
       key: "/dashboard/menus",
       icon: <MenuOutlined />,
       label: "Gestionar Menús",
     },
- 
     {
       key: "/dashboard/sub_menus",
       icon: <CalendarOutlined />,
       label: "Gestionar Sub Menús",
     },
-
     {
       key: "/dashboard/bitacora",
-      icon: <CalendarOutlined />,
+      icon: <FileTextOutlined />,
       label: "Administrar Bitacora",
     },
-
     {
       key: "/dashboard/contenido",
       icon: <CalendarOutlined />,
       label: "Gestionar Contenido",
     },
-
     {
       key: "/dashboard/configuracion",
       icon: <SettingOutlined />,
