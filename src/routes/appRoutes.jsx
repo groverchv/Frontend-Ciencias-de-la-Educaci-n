@@ -8,6 +8,7 @@ import GestionarUsuario from "../pages/Dashboard/GestionarUsuario";
 import PrivateRoute from "../components/PrivateRoute";
 import GestionarMenu from "../pages/Dashboard/GestionarMenu";;
 import GestionarSub_Menu from "../pages/Dashboard/GestionarSub_Menu";
+import GestionarContenido from "../pages/Dashboard/GestionarContenido";
 
 export default function AppRoutes() {
   return (
@@ -28,6 +29,7 @@ export default function AppRoutes() {
         <Route path="usuarios" element={<GestionarUsuario />} />
         <Route path="menus" element={<GestionarMenu />} />
         <Route path="sub_menus" element={<GestionarSub_Menu />} />
+        <Route path="contenido" element={<GestionarContenido />} />
       </Route>
     </Routes>
   );
