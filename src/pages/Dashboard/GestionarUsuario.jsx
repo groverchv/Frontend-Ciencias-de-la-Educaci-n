@@ -20,16 +20,17 @@ import {
   UserOutlined,
   MailOutlined,
   LockOutlined,
-  TeamOutlined // Icono añadido para el título
+  TeamOutlined
 } from "@ant-design/icons";
 import UsuarioService from "../../services/UsuarioService.js";
-// NO importamos CSS específico
+import RolService from "../../services/RolService.js";
 
 const { Title } = Typography;
 const { Option } = Select;
 
 export default function GestionarUsuario() {
   const [usuarios, setUsuarios] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState(null);
@@ -37,7 +38,17 @@ export default function GestionarUsuario() {
 
   useEffect(() => {
     fetchUsuarios();
+    fetchRoles();
   }, []);
+
+  const fetchRoles = async () => {
+    try {
+      const data = await RolService.getAllRoles();
+      setRoles(data.filter(r => r.estado)); // Solo roles activos
+    } catch (error) {
+      message.error("Error al cargar roles: " + error.toString());
+    }
+  };
 
   const fetchUsuarios = async () => {
     setLoading(true);
@@ -54,11 +65,22 @@ export default function GestionarUsuario() {
   const handleOpenModal = (usuario = null) => {
     setEditingUsuario(usuario);
     if (usuario) {
+      // Extraer IDs de los roles del usuario
+      const rolesIds = usuario.roles?.map(rol => {
+        // Si roles es un array de objetos con id
+        if (typeof rol === 'object' && rol.id) return rol.id;
+        // Si roles es un array de IDs
+        if (typeof rol === 'number') return rol;
+        // Si roles es un array de nombres, buscar el ID
+        const rolEncontrado = roles.find(r => r.nombre === rol);
+        return rolEncontrado?.id;
+      }).filter(Boolean) || [];
+      
       form.setFieldsValue({
         nombre: usuario.nombre,
         apellido: usuario.apellido,
         correo: usuario.correo,
-        roles: usuario.roles,
+        rolesIds: rolesIds,
       });
     } else {
       form.resetFields();
@@ -117,13 +139,20 @@ export default function GestionarUsuario() {
       title: "Roles",
       dataIndex: "roles",
       key: "roles",
-      render: (roles) => (
-        <>
-          {roles?.map((rol) => (
-            <Tag color="blue" key={rol}>{rol}</Tag>
-          ))}
-        </>
-      ),
+      render: (rolesData) => {
+        if (!rolesData || rolesData.length === 0) return <Tag>Sin roles</Tag>;
+        
+        return (
+          <>
+            {rolesData.map((rol, index) => {
+              const rolNombre = typeof rol === 'object' ? rol.nombre : rol;
+              const rolColor = rolNombre === 'ADMINISTRADOR' ? 'gold' : 
+                              rolNombre === 'EDITOR' ? 'blue' : 'green';
+              return <Tag color={rolColor} key={index}>{rolNombre}</Tag>;
+            })}
+          </>
+        );
+      },
     },
     {
       title: "Estado",
@@ -185,11 +214,11 @@ export default function GestionarUsuario() {
               <Input.Password prefix={<LockOutlined />} placeholder="Contraseña" />
             </Form.Item>
           )}
-          <Form.Item name="roles" label="Roles" rules={[{ required: true }]}>
+          <Form.Item name="rolesIds" label="Roles" rules={[{ required: true, message: "Seleccione al menos un rol" }]}>
             <Select mode="multiple" placeholder="Seleccione roles">
-              <Option value="ADMIN">Administrador</Option>
-              <Option value="USER">Usuario</Option>
-              <Option value="MODERADOR">Moderador</Option>
+              {roles.map(rol => (
+                <Option key={rol.id} value={rol.id}>{rol.nombre}</Option>
+              ))}
             </Select>
           </Form.Item>
           <Form.Item>

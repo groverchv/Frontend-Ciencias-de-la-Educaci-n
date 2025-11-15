@@ -11,25 +11,38 @@ import {
   Popconfirm,
   Tag,
   Card,
-  Typography
+  Typography,
+  Transfer,
+  Spin,
+  Divider
 } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  KeyOutlined
 } from "@ant-design/icons";
 
 import RolService from "../../services/RolService.js";
+import PermisoService from "../../services/PermisoService.js";
+import RolPermisoService from "../../services/RolPermisoService.js";
 import "./DashboardLayout.css";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 export default function GestionarRol() {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [permisosModalVisible, setPermisosModalVisible] = useState(false);
   const [editingRol, setEditingRol] = useState(null);
+  const [selectedRol, setSelectedRol] = useState(null);
   const [form] = Form.useForm();
+
+  // Para el Transfer de permisos
+  const [todosPermisos, setTodosPermisos] = useState([]);
+  const [targetKeys, setTargetKeys] = useState([]);
+  const [loadingPermisos, setLoadingPermisos] = useState(false);
 
   useEffect(() => {
     fetchRoles();
@@ -93,6 +106,61 @@ export default function GestionarRol() {
     }
   };
 
+  // Funciones para gestión de permisos
+  const handleOpenPermisosModal = async (rol) => {
+    setSelectedRol(rol);
+    setLoadingPermisos(true);
+    setPermisosModalVisible(true);
+    
+    try {
+      // Cargar todos los permisos
+      const allPermisos = await PermisoService.getAllPermisos();
+      setTodosPermisos(allPermisos);
+
+      // Cargar permisos asignados al rol
+      const permisosRol = await RolPermisoService.getPermisosByRol(rol.id);
+      
+      // Establecer las keys de los permisos asignados
+      const keys = permisosRol.map(p => p.id);
+      setTargetKeys(keys);
+    } catch (error) {
+      message.error("Error al cargar permisos: " + error.toString());
+    } finally {
+      setLoadingPermisos(false);
+    }
+  };
+
+  const handleClosePermisosModal = () => {
+    setPermisosModalVisible(false);
+    setSelectedRol(null);
+    setTodosPermisos([]);
+    setTargetKeys([]);
+  };
+
+  const handleAsignarPermisos = async () => {
+    if (!selectedRol) return;
+    
+    setLoadingPermisos(true);
+    try {
+      await RolPermisoService.asignarPermisosARol(selectedRol.id, targetKeys);
+      message.success("Permisos asignados correctamente");
+      handleClosePermisosModal();
+    } catch (error) {
+      message.error("Error al asignar permisos: " + error.toString());
+    } finally {
+      setLoadingPermisos(false);
+    }
+  };
+
+  const handleTransferChange = (nextTargetKeys) => {
+    setTargetKeys(nextTargetKeys);
+  };
+
+  // Filtrar permisos para el Transfer (por categoría)
+  const filterOption = (inputValue, option) => {
+    return option.nombre.toLowerCase().includes(inputValue.toLowerCase());
+  };
+
   const columns = [
     {
       title: "ID",
@@ -118,9 +186,17 @@ export default function GestionarRol() {
     {
       title: "Acciones",
       key: "acciones",
-      width: 150,
+      width: 200,
       render: (_, record) => (
         <Space>
+          <Button
+            type="default"
+            size="small"
+            icon={<KeyOutlined />}
+            onClick={() => handleOpenPermisosModal(record)}
+          >
+            Permisos
+          </Button>
           <Button
             type="primary"
             size="small"
@@ -196,6 +272,73 @@ export default function GestionarRol() {
             <Switch checkedChildren="Activo" unCheckedChildren="Inactivo" />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Modal para asignar permisos */}
+      <Modal
+        title={
+          <Space>
+            <KeyOutlined />
+            <span>Asignar Permisos al Rol: {selectedRol?.nombre}</span>
+          </Space>
+        }
+        open={permisosModalVisible}
+        onCancel={handleClosePermisosModal}
+        onOk={handleAsignarPermisos}
+        okText="Guardar Permisos"
+        cancelText="Cancelar"
+        width={800}
+        confirmLoading={loadingPermisos}
+      >
+        {loadingPermisos ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16 }}>
+              <Text>Cargando permisos...</Text>
+            </div>
+          </div>
+        ) : (
+          <>
+            <Divider orientation="left">
+              Seleccione los permisos para este rol
+            </Divider>
+            <Transfer
+              dataSource={todosPermisos.map(p => ({
+                key: p.id,
+                nombre: p.nombre,
+                disabled: !p.estado
+              }))}
+              titles={['Permisos Disponibles', 'Permisos Asignados']}
+              targetKeys={targetKeys}
+              onChange={handleTransferChange}
+              render={item => (
+                <Space>
+                  <Tag color={item.disabled ? 'default' : 'blue'}>
+                    {item.nombre}
+                  </Tag>
+                </Space>
+              )}
+              listStyle={{
+                width: 350,
+                height: 400,
+              }}
+              showSearch
+              filterOption={filterOption}
+              locale={{
+                itemUnit: 'permiso',
+                itemsUnit: 'permisos',
+                searchPlaceholder: 'Buscar permiso...',
+                notFoundContent: 'No se encontraron permisos'
+              }}
+            />
+            <Divider />
+            <div style={{ textAlign: 'center' }}>
+              <Text type="secondary">
+                Permisos seleccionados: {targetKeys.length} de {todosPermisos.length}
+              </Text>
+            </div>
+          </>
+        )}
       </Modal>
     </div>
   );

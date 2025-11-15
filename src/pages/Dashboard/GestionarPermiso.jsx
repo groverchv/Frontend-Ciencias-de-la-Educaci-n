@@ -1,97 +1,71 @@
 import React, { useState, useEffect } from "react";
 import {
   Table,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
-  Switch,
-  message,
-  Popconfirm,
-  Tag,
   Card,
-  Typography
+  Tag,
+  Typography,
+  Alert,
+  Space,
+  Input
 } from "antd";
 import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined
+  LockOutlined,
+  SearchOutlined
 } from "@ant-design/icons";
 
 import PermisoService from "../../services/PermisoService.js";
 import "./DashboardLayout.css";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 export default function GestionarPermiso() {
   const [permisos, setPermisos] = useState([]);
+  const [permisosFiltered, setPermisosFiltered] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingPermiso, setEditingPermiso] = useState(null);
-  const [form] = Form.useForm();
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     fetchPermisos();
   }, []);
+
+  useEffect(() => {
+    if (searchText) {
+      const filtered = permisos.filter(p => 
+        p.nombre.toLowerCase().includes(searchText.toLowerCase())
+      );
+      setPermisosFiltered(filtered);
+    } else {
+      setPermisosFiltered(permisos);
+    }
+  }, [searchText, permisos]);
 
   const fetchPermisos = async () => {
     setLoading(true);
     try {
       const data = await PermisoService.getAllPermisos();
       setPermisos(data);
+      setPermisosFiltered(data);
     } catch (error) {
-      message.error(error.toString());
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenModal = (permiso = null) => {
-    setEditingPermiso(permiso);
-    if (permiso) {
-      form.setFieldsValue({
-        nombre: permiso.nombre,
-        estado: permiso.estado
-      });
-    } else {
-      form.resetFields();
-      form.setFieldsValue({ estado: true });
-    }
-    setModalVisible(true);
-  };
-
-  const handleCloseModal = () => {
-    setModalVisible(false);
-    setEditingPermiso(null);
-    form.resetFields();
-  };
-
-  const handleSubmit = async (values) => {
-    try {
-      if (editingPermiso) {
-        await PermisoService.updatePermiso(editingPermiso.id, values);
-        message.success("Permiso actualizado correctamente");
-      } else {
-        await PermisoService.createPermiso(values);
-        message.success("Permiso creado correctamente");
+  // Agrupar permisos por módulo
+  const agruparPermisosPorModulo = () => {
+    const grupos = {};
+    permisosFiltered.forEach(permiso => {
+      const modulo = permiso.nombre.split('_')[0];
+      if (!grupos[modulo]) {
+        grupos[modulo] = [];
       }
-      fetchPermisos();
-      handleCloseModal();
-    } catch (error) {
-      message.error(error.toString());
-    }
+      grupos[modulo].push(permiso);
+    });
+    return grupos;
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await PermisoService.deletePermiso(id);
-      message.success("Permiso eliminado correctamente");
-      fetchPermisos();
-    } catch (error) {
-      message.error(error.toString());
-    }
-  };
+  const gruposPermisos = agruparPermisosPorModulo();
 
   const columns = [
     {
@@ -101,45 +75,25 @@ export default function GestionarPermiso() {
       width: 80
     },
     {
-      title: "Nombre",
+      title: "Permiso",
       dataIndex: "nombre",
-      key: "nombre"
+      key: "nombre",
+      render: (nombre) => (
+        <Space>
+          <LockOutlined style={{ color: '#1890ff' }} />
+          <Text strong>{nombre}</Text>
+        </Space>
+      )
     },
     {
       title: "Estado",
       dataIndex: "estado",
       key: "estado",
+      width: 120,
       render: (estado) => (
         <Tag color={estado ? "green" : "red"}>
           {estado ? "Activo" : "Inactivo"}
         </Tag>
-      )
-    },
-    {
-      title: "Acciones",
-      key: "acciones",
-      width: 150,
-      render: (_, record) => (
-        <Space>
-          <Button
-            type="primary"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleOpenModal(record)}
-          />
-          <Popconfirm
-            title="¿Está seguro de eliminar este permiso?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Sí"
-            cancelText="No"
-          >
-            <Button
-              danger
-              size="small"
-              icon={<DeleteOutlined />}
-            />
-          </Popconfirm>
-        </Space>
       )
     }
   ];
@@ -147,56 +101,62 @@ export default function GestionarPermiso() {
   return (
     <div className="dashboard-content">
       <Card>
-        <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Title level={3}>Gestionar Permisos</Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => handleOpenModal()}
-          >
-            Nuevo Permiso
-          </Button>
+        <div style={{ marginBottom: 16 }}>
+          <Title level={3}>
+            <LockOutlined /> Permisos del Sistema
+          </Title>
+          
+          <Alert
+            message="Permisos Estáticos"
+            description="Los permisos son predefinidos por el sistema y no pueden ser modificados. Para asignar permisos a los roles, ve a la sección de 'Gestionar Roles'."
+            type="info"
+            showIcon
+            closable
+            style={{ marginBottom: 16 }}
+          />
+
+          <Input
+            placeholder="Buscar permiso..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ marginBottom: 16, maxWidth: 400 }}
+          />
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={permisos}
-          rowKey="id"
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-        />
+        {/* Mostrar permisos agrupados por módulo */}
+        {Object.keys(gruposPermisos).length > 0 ? (
+          Object.keys(gruposPermisos).sort().map(modulo => (
+            <div key={modulo} style={{ marginBottom: 24 }}>
+              <Title level={5} style={{ color: '#1890ff', marginBottom: 12 }}>
+                📦 Módulo: {modulo}
+              </Title>
+              <Table
+                columns={columns}
+                dataSource={gruposPermisos[modulo]}
+                rowKey="id"
+                loading={loading}
+                pagination={false}
+                size="small"
+              />
+            </div>
+          ))
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={permisosFiltered}
+            rowKey="id"
+            loading={loading}
+            pagination={{ pageSize: 15 }}
+          />
+        )}
+
+        <div style={{ marginTop: 16, textAlign: 'center', color: '#999' }}>
+          <Text type="secondary">
+            Total de permisos: {permisos.length}
+          </Text>
+        </div>
       </Card>
-
-      <Modal
-        title={editingPermiso ? "Editar Permiso" : "Nuevo Permiso"}
-        open={modalVisible}
-        onCancel={handleCloseModal}
-        onOk={() => form.submit()}
-        okText={editingPermiso ? "Actualizar" : "Crear"}
-        cancelText="Cancelar"
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-        >
-          <Form.Item
-            label="Nombre"
-            name="nombre"
-            rules={[{ required: true, message: "Por favor ingrese el nombre del permiso" }]}
-          >
-            <Input placeholder="Ej: CREAR_USUARIO, EDITAR_MENU, etc." />
-          </Form.Item>
-
-          <Form.Item
-            label="Estado"
-            name="estado"
-            valuePropName="checked"
-          >
-            <Switch checkedChildren="Activo" unCheckedChildren="Inactivo" />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 }
