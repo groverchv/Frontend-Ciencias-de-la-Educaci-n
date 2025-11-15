@@ -1,11 +1,13 @@
 // src/components/header.jsx
 import React, { useState, useCallback, useEffect } from "react";
-import { Layout, Grid, Drawer, Menu, Button, Spin, Space } from "antd";
-import { MenuOutlined, LoadingOutlined, DashboardOutlined } from "@ant-design/icons";
+// 1. Imports de Menú, Spin, Alert, Servicios de Menú, etc., ELIMINADOS
+import { Layout, Grid, Button, Space } from "antd"; 
+import { MenuOutlined, DashboardOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import MenuService from "../services/MenuService.js";
 import AuthService from "../services/AuthService.js";
-import * as Icons from "@ant-design/icons";
+// 2. IMPORTAR TU NUEVO COMPONENTE SIDEBAR
+// (Ajusta la ruta si 'sidebar.jsx' no está en la misma carpeta)
+import Sidebar from "./sidebar"; 
 
 const { Header: AntHeader } = Layout;
 const { useBreakpoint } = Grid;
@@ -15,15 +17,14 @@ export default function Header() {
   const isMobile = !screens.md;
   const navigate = useNavigate();
 
+  // 3. El Header SÓLO maneja el estado de 'abierto/cerrado'
   const [openDrawer, setOpenDrawer] = useState(false);
-  const [menuItems, setMenuItems] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   const toggleDrawer = useCallback(() => setOpenDrawer((v) => !v), []);
 
+  // 4. El useEffect ahora SÓLO comprueba la autenticación
   useEffect(() => {
-    fetchMenus();
     checkAuth();
   }, []);
 
@@ -31,51 +32,8 @@ export default function Header() {
     setIsAuthenticated(AuthService.isAuthenticated());
   };
 
-  const fetchMenus = async () => {
-    try {
-      const menus = await MenuService.getMenusActivos();
-      if (Array.isArray(menus)) {
-        setMenuItems(menus);
-      } else {
-        console.error("La respuesta de la API no es un arreglo:", menus);
-        setMenuItems([]);
-      }
-    } catch (error) {
-      console.error("Error al cargar menús:", error);
-      setMenuItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getIcon = (iconName) => {
-    if (!iconName) return null;
-    const IconComponent = Icons[iconName];
-    return IconComponent ? React.createElement(IconComponent) : null;
-  };
-
-  const convertToAntdMenu = (menus) => {
-    return menus.map((menu) => {
-      const item = {
-        key: menu.ruta || menu.id.toString(),
-        label: menu.nombre,
-        icon: getIcon(menu.icono),
-      };
-
-      if (menu.subMenus && menu.subMenus.length > 0) {
-        item.children = convertToAntdMenu(menu.subMenus);
-      }
-
-      return item;
-    });
-  };
-
-  const handleMenuClick = ({ key }) => {
-    if (typeof key === "string" && key.startsWith("/")) {
-      navigate(key);
-      setOpenDrawer(false);
-    }
-  };
+  // 5. TODAS las funciones de menú (fetch, getIcon, convert, handleMenuClick)
+  // han sido ELIMINADAS de este archivo.
 
   return (
     <>
@@ -103,7 +61,7 @@ export default function Header() {
           aria-expanded={openDrawer}
           type="text"
           icon={<MenuOutlined style={{ color: "#fff", fontSize: 20 }} />}
-          onClick={toggleDrawer}
+          onClick={toggleDrawer} // <-- Esto abre el Drawer
           style={{ color: "#fff" }}
         />
         <div className="app-header__brand">FACULTAD DE HUMANIDADES</div>
@@ -132,39 +90,14 @@ export default function Header() {
         </Space>
       </AntHeader>
 
-      <Drawer
-        className="app-drawer"
-        title="Menú"
-        placement="left"
-        open={openDrawer}
-        onClose={() => setOpenDrawer(false)}
-        width={300}
-        styles={{ body: { padding: 0 } }}
-        zIndex={1050}
-        maskClosable
-        keyboard
-      >
-        {loading ? (
-          <div style={{ textAlign: "center", padding: "50px" }}>
-            <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-          </div>
-        ) : menuItems.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "50px", color: "#999" }}>
-            <p>No hay menús disponibles</p>
-            <p style={{ fontSize: "12px" }}>
-              Los administradores pueden crear menús desde el Dashboard
-            </p>
-          </div>
-        ) : (
-          <Menu
-            mode="inline"
-            style={{ borderRight: 0 }}
-            items={convertToAntdMenu(menuItems)}
-            selectable={false}
-            onClick={handleMenuClick}
-          />
-        )}
-      </Drawer>
+      {/* 6. EL <Drawer> YA NO ESTÁ AQUÍ */}
+
+      {/* 7. En su lugar, renderizamos el componente Sidebar
+           y le pasamos el estado y la función para cerrarlo */}
+      <Sidebar 
+        open={openDrawer} 
+        onClose={() => setOpenDrawer(false)} 
+      />
     </>
   );
 }

@@ -1,12 +1,21 @@
 // src/components/navbar.jsx
 import React, { useState, useEffect, useMemo } from "react";
-import { Layout, Grid, Spin } from "antd";
+// Importamos Alert y Spin para los estados de carga
+import { Layout, Grid, Spin, Alert } from "antd"; 
 import { LoadingOutlined } from "@ant-design/icons";
 import { useLocation } from "react-router-dom";
 import * as Icons from "@ant-design/icons";
 
+// --- 1. IMPORTAR TUS SERVICIOS ---
+// (Asegúrate de que la ruta sea correcta, ej: "../services/MenuService")
+import MenuService from "../services/MenuService";
+import Sub_MenuService from "../services/Sub_MenuService";
+
 const { Content } = Layout;
 const { useBreakpoint } = Grid;
+
+// Icono para el spinner de carga
+const antIcon = <LoadingOutlined style={{ fontSize: 24, color: '#fff' }} spin />;
 
 export default function Navbar() {
   // Hooks SIEMPRE arriba y en el mismo orden
@@ -14,53 +23,86 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const [hoverKey, setHoverKey] = useState(null);
 
-  // Datos estáticos para los menús
-  const menuItems = useMemo(
-    () => [
-      {
-        id: 1,
-        nombre: "Inicio",
-        ruta: "/",
-        icono: "HomeOutlined",
-        subMenus: [],
-      },
-      {
-        id: 2,
-        nombre: "Acerca de",
-        ruta: "/about",
-        icono: "InfoCircleOutlined",
-        subMenus: [],
-      },
-      {
-        id: 3,
-        nombre: "Servicios",
-        ruta: "/services",
-        icono: "AppstoreOutlined",
-        subMenus: [
-          {
-            id: 31,
-            nombre: "Consultoría",
-            ruta: "/services/consulting",
-            icono: "SolutionOutlined",
-          },
-          {
-            id: 32,
-            nombre: "Desarrollo",
-            ruta: "/services/development",
-            icono: "CodeOutlined",
-          },
-        ],
-      },
-      {
-        id: 4,
-        nombre: "Contacto",
-        ruta: "/contact",
-        icono: "PhoneOutlined",
-        subMenus: [],
-      },
-    ],
-    []
-  );
+  // --- 2. ESTADOS PARA MANEJAR DATOS DE LA API ---
+  const [menus, setMenus] = useState([]);
+  const [subMenus, setSubMenus] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // --- 3. USEEFFECT PARA CARGAR DATOS AL MONTAR ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Peticiones en paralelo
+        const [menusResponse, subMenusResponse] = await Promise.all([
+          MenuService.getAllMenus(),
+          Sub_MenuService.getAllSubMenu(),
+        ]);
+
+        // Guardamos solo los que tienen estado=true
+        setMenus(menusResponse.filter(m => m.estado === true));
+        setSubMenus(subMenusResponse.filter(s => s.estado === true));
+
+      } catch (err) {
+        console.error("Error al cargar menús:", err);
+        setError(err.message || "No se pudieron cargar los datos del menú.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []); // Array vacío = ejecutar solo una vez al montar el componente
+
+  
+  // --- 4. USEMEMO DINÁMICO (REEMPLAZA AL ESTÁTICO) ---
+  // Transforma los datos de la API (menus, subMenus)
+  // a la estructura que el Navbar espera (menuItems)
+  const menuItems = useMemo(() => {
+    
+    // Ordenar menús por el campo 'orden'
+    const sortedMenus = [...menus].sort((a, b) => (a.orden || 0) - (b.orden || 0));
+
+    // Crear un mapa de submenús para asignarlos eficientemente
+    // la clave es el menu_id
+    const subMenuMap = subMenus.reduce((acc, sub) => {
+      // El backend devuelve menu_id como un objeto {id: ...}
+      const menuId = sub.menu_id?.id; 
+      if (!menuId) return acc;
+      
+      if (!acc[menuId]) {
+        acc[menuId] = [];
+      }
+      acc[menuId].push(sub);
+      return acc;
+    }, {});
+
+    // Combinar menús y submenús
+    return sortedMenus.map((menu) => {
+      const relatedSubMenus = subMenuMap[menu.id] || [];
+      
+      // Ordenar los submenús también
+      const sortedSubMenus = relatedSubMenus.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+      
+      return {
+        id: menu.id,
+        nombre: menu.titulo, // Mapeo: titulo -> nombre
+        ruta: menu.ruta,
+        icono: menu.icono,
+        subMenus: sortedSubMenus.map((sub) => ({
+          id: sub.id,
+          nombre: sub.titulo, // Mapeo: titulo -> nombre
+          ruta: sub.ruta,
+          icono: sub.icono,
+        })),
+      };
+    });
+  }, [menus, subMenus]); // Se recalcula si 'menus' o 'subMenus' cambian
+
+  // --- (EL RESTO DE TU CÓDIGO PERMANECE IGUAL) ---
 
   const getIcon = (iconName) => {
     if (!iconName) return null;
@@ -68,7 +110,8 @@ export default function Navbar() {
     return IconComponent ? React.createElement(IconComponent) : null;
   };
 
-  // Convertir menús estáticos al formato del navbar
+  // Este useMemo no cambia, ya que depende de 'menuItems'
+  // y 'menuItems' ahora es dinámico.
   const items = useMemo(() => {
     return menuItems.map((menu) => {
       const item = {
@@ -89,9 +132,9 @@ export default function Navbar() {
 
       return item;
     });
-  }, [menuItems]);
+  }, [menuItems]); // Esta dependencia es la clave
 
-  // Índice de rutas para construir breadcrumbs
+  // Este useMemo tampoco cambia
   const routeIndex = useMemo(() => {
     const map = {};
     const index = (arr, parentHref = null) => {
@@ -104,7 +147,7 @@ export default function Navbar() {
     return map;
   }, [items]);
 
-  // Encuentra la ruta más específica que coincide con la URL actual
+  // Este useMemo tampoco cambia
   const crumbs = useMemo(() => {
     let best = null;
     for (const href in routeIndex) {
@@ -121,8 +164,103 @@ export default function Navbar() {
     return chain;
   }, [pathname, routeIndex]);
 
+
+  // --- 5. FUNCIÓN PARA MANEJAR RENDERIZADO (LOADING/ERROR) ---
+  const renderNavbarContent = () => {
+    // Estado de Carga
+    if (loading) {
+      return (
+        <div style={{ textAlign: "center", padding: "40px 0", minHeight: '121px' /* Altura aprox. del navbar */ }}>
+          <Spin indicator={antIcon} />
+        </div>
+      );
+    }
+    
+    // Estado de Error
+    if (error) {
+       return (
+        <div style={{ textAlign: "center", padding: "20px" }}>
+           <Alert 
+             message={`Error al cargar menú: ${error}`} 
+             type="error" 
+             showIcon 
+             style={{ maxWidth: '600px', margin: '0 auto', color: 'rgba(0,0,0,0.8)' }} 
+           />
+        </div>
+      );
+    }
+
+    // Estado Vacío
+    if (items.length === 0) {
+      return (
+        <div style={{ textAlign: "center", padding: "20px", color: "#fff", opacity: 0.7 }}>
+          No hay menús disponibles
+        </div>
+      );
+    }
+    
+    // Contenido renderizado (el JSX original)
+    return (
+      <div className="nav-grid">
+        {items.map((it) => (
+          <div
+            key={it.key}
+            onMouseEnter={() => setHoverKey(it.key)}
+            onMouseLeave={() => setHoverKey(null)}
+            className="nav-item-wrap"
+          >
+            <div className={`nav-item ${hoverKey === it.key ? "hovered" : ""}`}>
+              <a className="nav-btn" href={it.href ?? "#"} aria-label={it.label}>
+                <span className="nav-icon">{it.icon}</span>
+                <span className="nav-label">{it.label}</span>
+              </a>
+              <div className="nav-underline" style={{ width: hoverKey === it.key ? 70 : 0 }} />
+            </div>
+
+            {it.submenu && hoverKey === it.key && (
+              <div className="submenu" role="menu">
+                {it.submenu.map((sm) => {
+                  if (sm.children?.length) {
+                    // (Esta parte de tu código maneja sub-sub-menús, la dejo por si acaso)
+                    return (
+                      <div key={sm.key} className="submenu-item has-children">
+                         <div className="submenu-parent">
+                           <span className="submenu-parent-left">
+                             {sm.icon ? <span className="submenu-icon">{sm.icon}</span> : null}
+                             <span>{sm.label}</span>
+                           </span>
+                           <span className="submenu-caret">›</span>
+                         </div>
+                         <div className="submenu submenu-nested">
+                           {sm.children.map((c) => (
+                             <a key={c.key} className="submenu-link" href={c.href}>
+                               {c.icon ? <span className="submenu-icon">{c.icon}</span> : null}
+                               <span>{c.label}</span>
+                             </a>
+                           ))}
+                         </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <a key={sm.key} className="submenu-link" href={sm.href}>
+                      {sm.icon ? <span className="submenu-icon">{sm.icon}</span> : null}
+                      <span>{sm.label}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+
   return (
     <Content style={{ padding: 0 }}>
+      {/* ... (Tu <style> gigante va aquí sin cambios) ... */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700;800;900&display=swap');
 
@@ -162,51 +300,50 @@ export default function Navbar() {
         .submenu-item.has-children:hover > .submenu-nested{ display:grid; }
         @media (min-width:768px){ .submenu-nested{ min-width:440px; grid-template-columns:repeat(2,minmax(200px,1fr)); } }
 
-    /* ====== MOBILE: breadcrumb de texto (centrado y grande) ====== */
-.mobile-crumbs-wrap { display: none; }
-@media (max-width: 991px) { 
-  .mobile-crumbs-wrap { 
-    display: block;
-    background: #f6f7fb;
-    border-bottom: 1px solid rgba(0,0,0,.06);
-  } 
-}
+        /* ====== MOBILE: breadcrumb de texto (centrado y grande) ====== */
+        .mobile-crumbs-wrap { display: none; }
+        @media (max-width: 991px) { 
+          .mobile-crumbs-wrap { 
+            display: block;
+            background: #f6f7fb;
+            border-bottom: 1px solid rgba(0,0,0,.06);
+          } 
+        }
 
-.mobile-crumbs {
-  /* contenedor */
-  max-width: 1280px; 
-  margin: 0 auto;
-  padding: 14px 16px;
+        .mobile-crumbs {
+          /* contenedor */
+          max-width: 1280px; 
+          margin: 0 auto;
+          padding: 14px 16px;
 
-  /* tipografía grande y centrada */
-  font-family: var(--font-sans);
-  font-size: clamp(18px, 5vw, 28px);   /* ← ajusta aquí el tamaño */
-  font-weight: 800;
-  color: #111827;
-  text-align: center;
+          /* tipografía grande y centrada */
+          font-family: var(--font-sans);
+          font-size: clamp(18px, 5vw, 28px);   /* ← ajusta aquí el tamaño */
+          font-weight: 800;
+          color: #111827;
+          text-align: center;
 
-  /* centrado con flex y permite varias líneas si es largo */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+          /* centrado con flex y permite varias líneas si es largo */
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
 
-.mobile-crumbs a { 
-  color: #111827; 
-  text-decoration: none; 
-  font-weight: 900; 
-}
-.mobile-crumbs a:hover { text-decoration: underline; }
+        .mobile-crumbs a { 
+          color: #111827; 
+          text-decoration: none; 
+          font-weight: 900; 
+        }
+        .mobile-crumbs a:hover { text-decoration: underline; }
 
-.crumb-sep { 
-  margin: 0 6px; 
-  opacity: .5; 
-  /* opcional: que el separador crezca acorde al texto */
-  font-size: 1em; 
-}
-
+        .crumb-sep { 
+          margin: 0 6px; 
+          opacity: .5; 
+          /* opcional: que el separador crezca acorde al texto */
+          font-size: 1em; 
+        }
       `}</style>
 
       {/* ====== MOBILE: Breadcrumbs en texto ====== */}
@@ -228,64 +365,8 @@ export default function Navbar() {
       {/* ====== DESKTOP NAVBAR ====== */}
       <div className="navbar-desktop nav-bg">
         <div className="nav-container">
-          {items.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "20px", color: "#fff", opacity: 0.7 }}>
-              No hay menús disponibles
-            </div>
-          ) : (
-            <div className="nav-grid">
-              {items.map((it) => (
-                <div
-                  key={it.key}
-                  onMouseEnter={() => setHoverKey(it.key)}
-                  onMouseLeave={() => setHoverKey(null)}
-                  className="nav-item-wrap"
-                >
-                  <div className={`nav-item ${hoverKey === it.key ? "hovered" : ""}`}>
-                    <a className="nav-btn" href={it.href ?? "#"} aria-label={it.label}>
-                      <span className="nav-icon">{it.icon}</span>
-                      <span className="nav-label">{it.label}</span>
-                    </a>
-                    <div className="nav-underline" style={{ width: hoverKey === it.key ? 70 : 0 }} />
-                  </div>
-
-                  {it.submenu && hoverKey === it.key && (
-                    <div className="submenu" role="menu">
-                      {it.submenu.map((sm) => {
-                        if (sm.children?.length) {
-                          return (
-                            <div key={sm.key} className="submenu-item has-children">
-                              <div className="submenu-parent">
-                                <span className="submenu-parent-left">
-                                  {sm.icon ? <span className="submenu-icon">{sm.icon}</span> : null}
-                                  <span>{sm.label}</span>
-                                </span>
-                                <span className="submenu-caret">›</span>
-                              </div>
-                              <div className="submenu submenu-nested">
-                                {sm.children.map((c) => (
-                                  <a key={c.key} className="submenu-link" href={c.href}>
-                                    {c.icon ? <span className="submenu-icon">{c.icon}</span> : null}
-                                    <span>{c.label}</span>
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        }
-                        return (
-                          <a key={sm.key} className="submenu-link" href={sm.href}>
-                            {sm.icon ? <span className="submenu-icon">{sm.icon}</span> : null}
-                            <span>{sm.label}</span>
-                          </a>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          {/* --- 6. USAR LA NUEVA FUNCIÓN DE RENDER --- */}
+          {renderNavbarContent()}
         </div>
       </div>
     </Content>

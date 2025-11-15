@@ -38,6 +38,13 @@ export default function DashboardSidebar() {
       icon: <CalendarOutlined />,
       label: "Gestionar Sub Menús",
     },
+
+    {
+      key: "/dashboard/bitacora",
+      icon: <CalendarOutlined />,
+      label: "Administrar Bitacora",
+    },
+
     {
       key: "/dashboard/configuracion",
       icon: <SettingOutlined />,
