@@ -12,6 +12,7 @@ import GestionarContenido from "../pages/Dashboard/GestionarContenido";
 import GestionarRol from "../pages/Dashboard/GestionarRol";
 import GestionarPermiso from "../pages/Dashboard/GestionarPermiso";
 import AdministrarBitacora from "../pages/Dashboard/AdministrarBitacora";
+import GestionarPresentacion from "../pages/Dashboard/GestionarPresentacion";
 
 export default function AppRoutes() {
   return (
@@ -36,6 +37,7 @@ export default function AppRoutes() {
         <Route path="roles" element={<GestionarRol />} />
         <Route path="permisos" element={<GestionarPermiso />} />
         <Route path="bitacora" element={<AdministrarBitacora />} />
+        <Route path="presentacion" element={<GestionarPresentacion />} />
       </Route>
     </Routes>
   );

@@ -1,71 +1,127 @@
 // src/components/header.jsx
 import React, { useState, useCallback, useEffect } from "react";
-// 1. Imports de Menú, Spin, Alert, Servicios de Menú, etc., ELIMINADOS
-import { Layout, Grid, Button, Space } from "antd"; 
+import { Layout, Grid, Button, Space } from "antd";
 import { MenuOutlined, DashboardOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import AuthService from "../services/AuthService.js";
-// 2. IMPORTAR TU NUEVO COMPONENTE SIDEBAR
-// (Ajusta la ruta si 'sidebar.jsx' no está en la misma carpeta)
-import Sidebar from "./sidebar"; 
+import Sidebar from "./sidebar";
 
 const { Header: AntHeader } = Layout;
 const { useBreakpoint } = Grid;
 
 export default function Header() {
   const screens = useBreakpoint();
-  const isMobile = !screens.md;
+  // Usamos "sm" como corte para móvil (< 576px aprox.)
+  const isMobile = !screens.sm;
   const navigate = useNavigate();
 
-  // 3. El Header SÓLO maneja el estado de 'abierto/cerrado'
   const [openDrawer, setOpenDrawer] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
+
   const toggleDrawer = useCallback(() => setOpenDrawer((v) => !v), []);
 
-  // 4. El useEffect ahora SÓLO comprueba la autenticación
   useEffect(() => {
-    checkAuth();
+    setIsAuthenticated(AuthService.isAuthenticated());
   }, []);
 
-  const checkAuth = () => {
-    setIsAuthenticated(AuthService.isAuthenticated());
-  };
+  const brandText = isMobile
+    ? "HUMANIDADES"
+    : "FACULTAD DE HUMANIDADES";
 
-  // 5. TODAS las funciones de menú (fetch, getIcon, convert, handleMenuClick)
-  // han sido ELIMINADAS de este archivo.
+  const css = `
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 56px;
+      padding: 0 32px;
+      background: #2600af;
+      position: sticky;
+      top: 0;
+      z-index: 1100;
+    }
+
+    .app-header__brand {
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: .6px;
+      font-size: 17px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-header__right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+    }
+
+    .app-header__link {
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    /* ====== RESPONSIVE ====== */
+    @media (max-width: 768px) {
+      .app-header {
+        padding: 0 16px;
+      }
+      .app-header__brand {
+        font-size: 15px;
+        max-width: 60vw;
+      }
+      .app-header__link {
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .app-header {
+        padding: 0 12px;
+        height: auto;
+        min-height: 52px;
+      }
+      .app-header__brand {
+        font-size: 14px;
+        max-width: 55vw;
+      }
+      .app-header__right .ant-btn {
+        padding-inline: 6px;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .app-header {
+        flex-wrap: wrap;
+        row-gap: 4px;
+      }
+      .app-header__right {
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+  `;
 
   return (
     <>
-      <style>{`
-        .app-header__brand { color:#fff;font-weight:800;letter-spacing:.6px;font-size:${isMobile ? "15px" : "17px"};white-space:nowrap; }
-        .app-header__link { color:#fff;font-weight:700;font-size:${isMobile ? "13px" : "15px"}; }
-      `}</style>
+      <style>{css}</style>
 
-      <AntHeader
-        role="banner"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          height: 56,
-          gap: 12,
-          padding: isMobile ? "0 12px" : "0 32px",
-          background: "#2600afff",
-          position: "sticky",
-          top: 0,
-          zIndex: 1100,
-        }}
-      >
+      <AntHeader role="banner" className="app-header">
         <Button
           aria-label="Abrir/Cerrar menú"
           aria-expanded={openDrawer}
           type="text"
           icon={<MenuOutlined style={{ color: "#fff", fontSize: 20 }} />}
-          onClick={toggleDrawer} // <-- Esto abre el Drawer
+          onClick={toggleDrawer}
           style={{ color: "#fff" }}
         />
-        <div className="app-header__brand">FACULTAD DE HUMANIDADES</div>
-        <Space style={{ marginLeft: "auto" }}>
+
+        <div className="app-header__brand">{brandText}</div>
+
+        <Space className="app-header__right">
           {isAuthenticated && (
             <Button
               type="text"
@@ -77,6 +133,7 @@ export default function Header() {
               {!isMobile && "DASHBOARD"}
             </Button>
           )}
+
           {!isAuthenticated && (
             <Button
               type="text"
@@ -90,14 +147,8 @@ export default function Header() {
         </Space>
       </AntHeader>
 
-      {/* 6. EL <Drawer> YA NO ESTÁ AQUÍ */}
-
-      {/* 7. En su lugar, renderizamos el componente Sidebar
-           y le pasamos el estado y la función para cerrarlo */}
-      <Sidebar 
-        open={openDrawer} 
-        onClose={() => setOpenDrawer(false)} 
-      />
+      {/* Sidebar controlado por el header */}
+      <Sidebar open={openDrawer} onClose={() => setOpenDrawer(false)} />
     </>
   );
 }

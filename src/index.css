@@ -1,13 +1,41 @@
-/* Ocupa toda la altura y elimina los bordes blancos del body */
-html, body, #root {
+/* src/index.css */
+
+/* Paleta base clara */
+:root {
+  --app-shell-bg: #f3f4f6;          /* gris muy suave */
+  --app-shell-top: #f9fafb;         /* casi blanco */
+  --app-shell-bottom: #e5edff;      /* toque azulado pastel */
+
+  --surface: #ffffff;               /* tarjetas / contenedores */
+  --border-subtle: #e5e7eb;
+  --text-main: #111827;             /* gris muy oscuro (no negro puro) */
+  --text-muted: #6b7280;
+  --primary: #2563eb;               /* azul UI */
+  --primary-soft: #dbeafe;
+}
+
+html,
+body,
+#root {
   height: 100%;
 }
 
 body {
-  margin: 0;                /* quita el margen blanco nativo */
-  background: #ffffff;      /* color de fondo global (cambia si quieres) */
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  color: var(--text-main);
+  background-color: var(--app-shell-bg);
 }
 
-/* Opcional: saneo básico */
-*, *::before, *::after { box-sizing: border-box; }
-img { max-width: 100%; display: block; }
+/* Saneo básico */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}

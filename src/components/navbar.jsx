@@ -1,51 +1,44 @@
 // src/components/navbar.jsx
 import React, { useState, useEffect, useMemo } from "react";
-// Importamos Alert y Spin para los estados de carga
-import { Layout, Grid, Spin, Alert } from "antd"; 
+import { Layout, Grid, Spin, Alert } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import { useLocation } from "react-router-dom";
 import * as Icons from "@ant-design/icons";
 
-// --- 1. IMPORTAR TUS SERVICIOS ---
-// (Asegúrate de que la ruta sea correcta, ej: "../services/MenuService")
 import MenuService from "../services/MenuService";
 import Sub_MenuService from "../services/Sub_MenuService";
 
 const { Content } = Layout;
 const { useBreakpoint } = Grid;
 
-// Icono para el spinner de carga
-const antIcon = <LoadingOutlined style={{ fontSize: 24, color: '#fff' }} spin />;
+const antIcon = (
+  <LoadingOutlined style={{ fontSize: 24, color: "#2563eb" }} spin />
+);
 
 export default function Navbar() {
-  // Hooks SIEMPRE arriba y en el mismo orden
   const _screens = useBreakpoint();
   const { pathname } = useLocation();
   const [hoverKey, setHoverKey] = useState(null);
 
-  // --- 2. ESTADOS PARA MANEJAR DATOS DE LA API ---
   const [menus, setMenus] = useState([]);
   const [subMenus, setSubMenus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // --- 3. USEEFFECT PARA CARGAR DATOS AL MONTAR ---
+  // Carga de menús y submenús
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // Peticiones en paralelo
+
         const [menusResponse, subMenusResponse] = await Promise.all([
           MenuService.getAllMenus(),
           Sub_MenuService.getAllSubMenu(),
         ]);
 
-        // Guardamos solo los que tienen estado=true
-        setMenus(menusResponse.filter(m => m.estado === true));
-        setSubMenus(subMenusResponse.filter(s => s.estado === true));
-
+        setMenus(menusResponse.filter((m) => m.estado === true));
+        setSubMenus(subMenusResponse.filter((s) => s.estado === true));
       } catch (err) {
         console.error("Error al cargar menús:", err);
         setError(err.message || "No se pudieron cargar los datos del menú.");
@@ -55,24 +48,17 @@ export default function Navbar() {
     };
 
     fetchData();
-  }, []); // Array vacío = ejecutar solo una vez al montar el componente
+  }, []);
 
-  
-  // --- 4. USEMEMO DINÁMICO (REEMPLAZA AL ESTÁTICO) ---
-  // Transforma los datos de la API (menus, subMenus)
-  // a la estructura que el Navbar espera (menuItems)
   const menuItems = useMemo(() => {
-    
-    // Ordenar menús por el campo 'orden'
-    const sortedMenus = [...menus].sort((a, b) => (a.orden || 0) - (b.orden || 0));
+    const sortedMenus = [...menus].sort(
+      (a, b) => (a.orden || 0) - (b.orden || 0)
+    );
 
-    // Crear un mapa de submenús para asignarlos eficientemente
-    // la clave es el menu_id
     const subMenuMap = subMenus.reduce((acc, sub) => {
-      // El backend devuelve menu_id como un objeto {id: ...}
-      const menuId = sub.menu_id?.id; 
+      const menuId = sub.menu_id?.id;
       if (!menuId) return acc;
-      
+
       if (!acc[menuId]) {
         acc[menuId] = [];
       }
@@ -80,29 +66,26 @@ export default function Navbar() {
       return acc;
     }, {});
 
-    // Combinar menús y submenús
     return sortedMenus.map((menu) => {
       const relatedSubMenus = subMenuMap[menu.id] || [];
-      
-      // Ordenar los submenús también
-      const sortedSubMenus = relatedSubMenus.sort((a, b) => (a.orden || 0) - (b.orden || 0));
-      
+      const sortedSubMenus = relatedSubMenus.sort(
+        (a, b) => (a.orden || 0) - (b.orden || 0)
+      );
+
       return {
         id: menu.id,
-        nombre: menu.titulo, // Mapeo: titulo -> nombre
+        nombre: menu.titulo,
         ruta: menu.ruta,
         icono: menu.icono,
         subMenus: sortedSubMenus.map((sub) => ({
           id: sub.id,
-          nombre: sub.titulo, // Mapeo: titulo -> nombre
+          nombre: sub.titulo,
           ruta: sub.ruta,
           icono: sub.icono,
         })),
       };
     });
-  }, [menus, subMenus]); // Se recalcula si 'menus' o 'subMenus' cambian
-
-  // --- (EL RESTO DE TU CÓDIGO PERMANECE IGUAL) ---
+  }, [menus, subMenus]);
 
   const getIcon = (iconName) => {
     if (!iconName) return null;
@@ -110,8 +93,6 @@ export default function Navbar() {
     return IconComponent ? React.createElement(IconComponent) : null;
   };
 
-  // Este useMemo no cambia, ya que depende de 'menuItems'
-  // y 'menuItems' ahora es dinámico.
   const items = useMemo(() => {
     return menuItems.map((menu) => {
       const item = {
@@ -132,14 +113,14 @@ export default function Navbar() {
 
       return item;
     });
-  }, [menuItems]); // Esta dependencia es la clave
+  }, [menuItems]);
 
-  // Este useMemo tampoco cambia
   const routeIndex = useMemo(() => {
     const map = {};
     const index = (arr, parentHref = null) => {
       arr.forEach((it) => {
-        if (it.href) map[it.href] = { href: it.href, label: it.label, parentHref };
+        if (it.href)
+          map[it.href] = { href: it.href, label: it.label, parentHref };
         if (it.submenu) index(it.submenu, it.href || parentHref);
       });
     };
@@ -147,7 +128,6 @@ export default function Navbar() {
     return map;
   }, [items]);
 
-  // Este useMemo tampoco cambia
   const crumbs = useMemo(() => {
     let best = null;
     for (const href in routeIndex) {
@@ -164,42 +144,53 @@ export default function Navbar() {
     return chain;
   }, [pathname, routeIndex]);
 
-
-  // --- 5. FUNCIÓN PARA MANEJAR RENDERIZADO (LOADING/ERROR) ---
   const renderNavbarContent = () => {
-    // Estado de Carga
     if (loading) {
       return (
-        <div style={{ textAlign: "center", padding: "40px 0", minHeight: '121px' /* Altura aprox. del navbar */ }}>
+        <div
+          style={{
+            textAlign: "center",
+            padding: "40px 0",
+            minHeight: "121px",
+          }}
+        >
           <Spin indicator={antIcon} />
         </div>
       );
     }
-    
-    // Estado de Error
+
     if (error) {
-       return (
+      return (
         <div style={{ textAlign: "center", padding: "20px" }}>
-           <Alert 
-             message={`Error al cargar menú: ${error}`} 
-             type="error" 
-             showIcon 
-             style={{ maxWidth: '600px', margin: '0 auto', color: 'rgba(0,0,0,0.8)' }} 
-           />
+          <Alert
+            message={`Error al cargar menú: ${error}`}
+            type="error"
+            showIcon
+            style={{
+              maxWidth: "600px",
+              margin: "0 auto",
+              color: "rgba(0,0,0,0.8)",
+            }}
+          />
         </div>
       );
     }
 
-    // Estado Vacío
     if (items.length === 0) {
       return (
-        <div style={{ textAlign: "center", padding: "20px", color: "#fff", opacity: 0.7 }}>
+        <div
+          style={{
+            textAlign: "center",
+            padding: "20px",
+            color: "#6b7280",
+            opacity: 0.9,
+          }}
+        >
           No hay menús disponibles
         </div>
       );
     }
-    
-    // Contenido renderizado (el JSX original)
+
     return (
       <div className="nav-grid">
         {items.map((it) => (
@@ -209,42 +200,72 @@ export default function Navbar() {
             onMouseLeave={() => setHoverKey(null)}
             className="nav-item-wrap"
           >
-            <div className={`nav-item ${hoverKey === it.key ? "hovered" : ""}`}>
-              <a className="nav-btn" href={it.href ?? "#"} aria-label={it.label}>
+            <div
+              className={`nav-item ${
+                hoverKey === it.key ? "hovered" : ""
+              }`}
+            >
+              <a
+                className="nav-btn"
+                href={it.href ?? "#"}
+                aria-label={it.label}
+              >
                 <span className="nav-icon">{it.icon}</span>
                 <span className="nav-label">{it.label}</span>
               </a>
-              <div className="nav-underline" style={{ width: hoverKey === it.key ? 70 : 0 }} />
+              <div
+                className="nav-underline"
+                style={{ width: hoverKey === it.key ? 70 : 0 }}
+              />
             </div>
 
             {it.submenu && hoverKey === it.key && (
               <div className="submenu" role="menu">
                 {it.submenu.map((sm) => {
                   if (sm.children?.length) {
-                    // (Esta parte de tu código maneja sub-sub-menús, la dejo por si acaso)
                     return (
                       <div key={sm.key} className="submenu-item has-children">
-                         <div className="submenu-parent">
-                           <span className="submenu-parent-left">
-                             {sm.icon ? <span className="submenu-icon">{sm.icon}</span> : null}
-                             <span>{sm.label}</span>
-                           </span>
-                           <span className="submenu-caret">›</span>
-                         </div>
-                         <div className="submenu submenu-nested">
-                           {sm.children.map((c) => (
-                             <a key={c.key} className="submenu-link" href={c.href}>
-                               {c.icon ? <span className="submenu-icon">{c.icon}</span> : null}
-                               <span>{c.label}</span>
-                             </a>
-                           ))}
-                         </div>
+                        <div className="submenu-parent">
+                          <span className="submenu-parent-left">
+                            {sm.icon ? (
+                              <span className="submenu-icon">
+                                {sm.icon}
+                              </span>
+                            ) : null}
+                            <span>{sm.label}</span>
+                          </span>
+                          <span className="submenu-caret">›</span>
+                        </div>
+                        <div className="submenu submenu-nested">
+                          {sm.children.map((c) => (
+                            <a
+                              key={c.key}
+                              className="submenu-link"
+                              href={c.href}
+                            >
+                              {c.icon ? (
+                                <span className="submenu-icon">
+                                  {c.icon}
+                                </span>
+                              ) : null}
+                              <span>{c.label}</span>
+                            </a>
+                          ))}
+                        </div>
                       </div>
                     );
                   }
                   return (
-                    <a key={sm.key} className="submenu-link" href={sm.href}>
-                      {sm.icon ? <span className="submenu-icon">{sm.icon}</span> : null}
+                    <a
+                      key={sm.key}
+                      className="submenu-link"
+                      href={sm.href}
+                    >
+                      {sm.icon ? (
+                        <span className="submenu-icon">
+                          {sm.icon}
+                        </span>
+                      ) : null}
                       <span>{sm.label}</span>
                     </a>
                   );
@@ -257,73 +278,259 @@ export default function Navbar() {
     );
   };
 
-
   return (
     <Content style={{ padding: 0 }}>
-      {/* ... (Tu <style> gigante va aquí sin cambios) ... */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700;800;900&display=swap');
 
-        :root{
-          --font-display:"Playfair Display","Times New Roman",serif;
-          --font-sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
-          --bg-1:#e60202ff; --bg-2:#e60202ff; --hover-bg:rgba(255,255,255,.14); --white:#fff; --ink:#0b0a34;
+        :root {
+          --font-display: "Playfair Display","Times New Roman",serif;
+          --font-sans: "Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+
+          --nav-bg-1: #ffffff;
+          --nav-bg-2: #f3f4ff;
+          --nav-hover-bg: rgba(37, 99, 235, 0.08);
+          --nav-text: #111827;
+          --nav-muted: #6b7280;
+          --nav-border: #e5e7eb;
+          --nav-accent: #2563eb;
+          --nav-sub-bg: #ffffff;
+          --nav-sub-border: rgba(148, 163, 184, 0.35);
+          --nav-sub-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
         }
 
-        /* ====== DESKTOP NAVBAR ====== */
-        .navbar-desktop { display:block; }
-        @media (max-width: 991px) { .navbar-desktop { display:none !important; } }
-
-        .nav-bg{ width:100%; color:var(--white); background:linear-gradient(90deg,var(--bg-1) 0%,var(--bg-2) 100%); }
-        .nav-container{ max-width:1280px; margin:0 auto; padding:12px 20px 18px; }
-        .brand{ text-align:center; margin-bottom:6px; }
-        .brand-title{ font-family:var(--font-display)!important; color:var(--white)!important; margin:0; line-height:1.1; font-weight:900; letter-spacing:.2px; font-size:clamp(18px,2.6vw,28px); text-shadow:0 2px 8px rgba(0,0,0,.25); }
-        .nav-grid{ display:flex; flex-wrap:wrap; gap:10px 20px; justify-content:center; align-items:center; }
-        .nav-item-wrap{ position:relative; display:inline-block; }
-        .nav-item{ padding:6px 10px; border-radius:10px; display:inline-flex; flex-direction:column; align-items:center; gap:4px; transition:background 180ms ease, transform 180ms ease; will-change:transform; }
-        .nav-item.hovered{ background:var(--hover-bg); transform:translateY(-1px); }
-        .nav-btn{ display:inline-flex; align-items:center; gap:8px; color:var(--white); text-decoration:none; white-space:nowrap; font-family:var(--font-sans); font-weight:600; letter-spacing:.2px; }
-        .nav-icon{ width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; }
-        .nav-icon svg{ font-size:22px; line-height:1; vertical-align:middle; opacity:.95; }
-        .nav-label{ font-size:clamp(12px,1.6vw,14px); line-height:1; }
-        .nav-underline{ height:2px; background:var(--white); border-radius:4px; transition:width 180ms ease; width:0; }
-        .submenu{ position:absolute; left:0; top:100%; background:#fff; color:var(--ink); border-radius:10px; box-shadow:0 16px 40px rgba(0,0,0,.25); min-width:240px; z-index:50; padding:6px; border:1px solid rgba(0,0,0,.06); }
-        .submenu-link{ display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:8px; color:var(--ink); text-decoration:none; font-size:14px; font-family:var(--font-sans); font-weight:600; transition:background 160ms ease, transform 120ms ease; white-space:normal; }
-        .submenu-link:hover{ background:rgba(11,10,52,.06); transform:translateX(1px); }
-        .submenu-icon{ width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; }
-        .submenu-item.has-children{ position:relative; }
-        .submenu-parent{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; border-radius:8px; cursor:default; font-family:var(--font-sans); font-weight:700; color:var(--ink); font-size:14px; }
-        .submenu-parent-left{ display:inline-flex; align-items:center; gap:8px; }
-        .submenu-parent:hover{ background:rgba(11,10,52,.06); }
-        .submenu-caret{ opacity:.55; }
-        .submenu-nested{ display:none; position:absolute; top:0; left:100%; margin-left:8px; background:#fff; color:var(--ink); border-radius:10px; box-shadow:0 16px 40px rgba(0,0,0,.25); padding:6px; min-width:240px; max-height:70vh; overflow:auto; grid-template-columns:1fr; gap:6px; border:1px solid rgba(0,0,0,.06); }
-        .submenu-item.has-children:hover > .submenu-nested{ display:grid; }
-        @media (min-width:768px){ .submenu-nested{ min-width:440px; grid-template-columns:repeat(2,minmax(200px,1fr)); } }
-
-        /* ====== MOBILE: breadcrumb de texto (centrado y grande) ====== */
-        .mobile-crumbs-wrap { display: none; }
+        /* ====== NAVBAR DESKTOP ====== */
+        .navbar-desktop { 
+          display:block; 
+          position: relative;
+          z-index: 5;
+        }
         @media (max-width: 991px) { 
-          .mobile-crumbs-wrap { 
-            display: block;
-            background: #f6f7fb;
-            border-bottom: 1px solid rgba(0,0,0,.06);
+          .navbar-desktop { 
+            display:none !important; 
           } 
         }
 
+        .nav-bg {
+          width: 100%;
+          color: var(--nav-text);
+          background: linear-gradient(
+            90deg,
+            var(--nav-bg-1) 0%,
+            var(--nav-bg-2) 100%
+          );
+          border-bottom: 1px solid var(--nav-border);
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+        }
+
+        .nav-container {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 10px 20px 14px;
+        }
+
+        .nav-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px 16px;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .nav-item-wrap {
+          position: relative;
+          display: inline-block;
+        }
+
+        .nav-item {
+          padding: 6px 10px;
+          border-radius: 999px; /* pill del botón, esto sí lo dejamos */
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          transition: background 160ms ease, transform 160ms ease;
+          will-change: transform;
+        }
+
+        .nav-item.hovered {
+          background: var(--nav-hover-bg);
+          transform: translateY(-1px);
+        }
+
+        .nav-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          color: var(--nav-text);
+          text-decoration: none;
+          white-space: nowrap;
+          font-family: var(--font-sans);
+          font-weight: 600;
+          letter-spacing: 0.2px;
+        }
+
+        .nav-icon {
+          width: 22px;
+          height: 22px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--nav-muted);
+        }
+
+        .nav-icon svg {
+          font-size: 20px;
+          line-height: 1;
+          vertical-align: middle;
+        }
+
+        .nav-label {
+          font-size: clamp(12px, 1.6vw, 14px);
+          line-height: 1;
+        }
+
+        .nav-underline {
+          height: 2px;
+          background: var(--nav-accent);
+          border-radius: 999px;
+          transition: width 180ms ease;
+          width: 0;
+        }
+
+        .submenu {
+          position: absolute;
+          left: 0;
+          top: 100%;
+          background: var(--nav-sub-bg);
+          color: var(--nav-text);
+          border-radius: 12px;
+          box-shadow: var(--nav-sub-shadow);
+          min-width: 240px;
+          z-index: 50;
+          padding: 6px;
+          border: 1px solid var(--nav-sub-border);
+        }
+
+        .submenu-link {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          border-radius: 8px;
+          color: var(--nav-text);
+          text-decoration: none;
+          font-size: 14px;
+          font-family: var(--font-sans);
+          font-weight: 500;
+          transition: background 140ms ease, transform 120ms ease;
+          white-space: normal;
+        }
+
+        .submenu-link:hover {
+          background: rgba(37, 99, 235, 0.06);
+          transform: translateX(1px);
+        }
+
+        .submenu-icon {
+          width: 18px;
+          height: 18px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--nav-muted);
+        }
+
+        .submenu-item.has-children {
+          position: relative;
+        }
+
+        .submenu-parent {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 10px 12px;
+          border-radius: 8px;
+          cursor: default;
+          font-family: var(--font-sans);
+          font-weight: 600;
+          color: var(--nav-text);
+          font-size: 14px;
+        }
+
+        .submenu-parent-left {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .submenu-parent:hover {
+          background: rgba(37, 99, 235, 0.06);
+        }
+
+        .submenu-caret {
+          opacity: 0.55;
+        }
+
+        .submenu-nested {
+          display: none;
+          position: absolute;
+          top: 0;
+          left: 100%;
+          margin-left: 8px;
+          background: var(--nav-sub-bg);
+          color: var(--nav-text);
+          border-radius: 12px;
+          box-shadow: var(--nav-sub-shadow);
+          padding: 6px;
+          min-width: 240px;
+          max-height: 70vh;
+          overflow: auto;
+          grid-template-columns: 1fr;
+          gap: 6px;
+          border: 1px solid var(--nav-sub-border);
+        }
+
+        .submenu-item.has-children:hover > .submenu-nested {
+          display: grid;
+        }
+
+        @media (min-width: 768px) {
+          .submenu-nested {
+            min-width: 440px;
+            grid-template-columns: repeat(2, minmax(200px, 1fr));
+          }
+        }
+
+        /* ====== MOBILE: breadcrumbs SIN ESQUINAS REDONDAS ====== */
+        .mobile-crumbs-wrap {
+          display: none;
+        }
+
+        @media (max-width: 991px) {
+          .mobile-crumbs-wrap {
+            display: block;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+
+            position: relative;
+            z-index: 6;
+            margin-top: -18px;
+            box-shadow: 0 -14px 32px rgba(15, 23, 42, 0.45);
+            border-radius: 0; /* <-- sin esquinas redondas */
+          }
+        }
+
         .mobile-crumbs {
-          /* contenedor */
-          max-width: 1280px; 
+          max-width: 1280px;
           margin: 0 auto;
           padding: 14px 16px;
-
-          /* tipografía grande y centrada */
           font-family: var(--font-sans);
-          font-size: clamp(18px, 5vw, 28px);   /* ← ajusta aquí el tamaño */
-          font-weight: 800;
+          font-size: clamp(18px, 5vw, 24px);
+          font-weight: 700;
           color: #111827;
           text-align: center;
-
-          /* centrado con flex y permite varias líneas si es largo */
           display: flex;
           justify-content: center;
           align-items: center;
@@ -331,22 +538,23 @@ export default function Navbar() {
           flex-wrap: wrap;
         }
 
-        .mobile-crumbs a { 
-          color: #111827; 
-          text-decoration: none; 
-          font-weight: 900; 
+        .mobile-crumbs a {
+          color: #111827;
+          text-decoration: none;
+          font-weight: 800;
         }
-        .mobile-crumbs a:hover { text-decoration: underline; }
 
-        .crumb-sep { 
-          margin: 0 6px; 
-          opacity: .5; 
-          /* opcional: que el separador crezca acorde al texto */
-          font-size: 1em; 
+        .mobile-crumbs a:hover {
+          text-decoration: underline;
+        }
+
+        .crumb-sep {
+          margin: 0 6px;
+          opacity: 0.5;
         }
       `}</style>
 
-      {/* ====== MOBILE: Breadcrumbs en texto ====== */}
+      {/* MOBILE: breadcrumbs */}
       <div className="mobile-crumbs-wrap">
         <div className="mobile-crumbs">
           {crumbs.length === 0 ? (
@@ -355,19 +563,18 @@ export default function Navbar() {
             crumbs.map((c, i) => (
               <span key={c.href}>
                 <a href={c.href}>{c.label}</a>
-                {i < crumbs.length - 1 && <span className="crumb-sep">/</span>}
+                {i < crumbs.length - 1 && (
+                  <span className="crumb-sep">/</span>
+                )}
               </span>
             ))
           )}
         </div>
       </div>
 
-      {/* ====== DESKTOP NAVBAR ====== */}
+      {/* DESKTOP NAVBAR */}
       <div className="navbar-desktop nav-bg">
-        <div className="nav-container">
-          {/* --- 6. USAR LA NUEVA FUNCIÓN DE RENDER --- */}
-          {renderNavbarContent()}
-        </div>
+        <div className="nav-container">{renderNavbarContent()}</div>
       </div>
     </Content>
   );

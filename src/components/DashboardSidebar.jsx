@@ -59,6 +59,11 @@ export default function DashboardSidebar() {
       icon: <CalendarOutlined />,
       label: "Gestionar Contenido",
     },
+      {
+      key: "/dashboard/presentacion",
+      icon: <SettingOutlined />,
+      label: "Gestionar Presentación",
+    },
     {
       key: "/dashboard/configuracion",
       icon: <SettingOutlined />,

@@ -14,7 +14,6 @@ function AppContent() {
   const isDashboard = location.pathname.startsWith("/dashboard");
   const isLogin = location.pathname === "/login";
 
-  // Si es Dashboard o Login, no mostrar header/navbar/footer públicos
   if (isDashboard || isLogin) {
     return (
       <div className="app-shell">
@@ -25,7 +24,6 @@ function AppContent() {
     );
   }
 
-  // Vista pública normal
   return (
     <div className="app-shell" style={{ "--app-bg": `url(${bg})` }}>
       <Header />

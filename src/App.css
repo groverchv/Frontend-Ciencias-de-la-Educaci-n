@@ -1,47 +1,37 @@
-html,
-body,
-#root {
-  height: 100%;
-}
-body {
-  margin: 0;
-}
+/* src/App.css */
 
 .app-shell {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 
-  background-color: #0b0a34;
-  background-image: linear-gradient(
+  /* Fondo claro + degradado suave */
+  background-color: var(--app-shell-bg);
+  background-image:
+    /* capa blanca suave encima de lo que venga (incluida --app-bg) */
+    linear-gradient(
       to bottom,
-      rgba(0, 0, 0, 0.25),
-      rgba(0, 0, 0, 0.55)
+      rgba(249, 250, 251, 0.96),
+      rgba(238, 242, 255, 0.96)
     ),
-    var(--app-bg);
+    /* imagen opcional que pasas desde App con --app-bg */
+    var(--app-bg, none);
+
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
-
   background-attachment: fixed;
 }
 
-.app-main {
-  flex: 1;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-img {
-  max-width: 100%;
-  display: block;
-}
-
+/* Para iOS/Safari, que odian background-attachment: fixed */
 @supports (-webkit-touch-callout: none) {
   .app-shell {
     background-attachment: scroll;
   }
+}
+
+.app-main {
+  flex: 1;
+  /* opcional: un poco de padding general */
+  padding: 1.5rem 1rem 2rem;
 }
