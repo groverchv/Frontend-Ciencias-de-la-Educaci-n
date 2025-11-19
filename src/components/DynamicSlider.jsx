@@ -138,19 +138,64 @@ export default function DynamicSlider({
   );
 }
 
-/* ========= Película Infinita (Filmstrip Loop con efecto "vivo") ========= */
+/* ========= Carrusel de Rueda Infinita (sin copias aparentes) ========= */
 function FilmstripOneRow({ sources }) {
-  // Duplicamos una vez para efecto infinito
+  const [isPaused, setIsPaused] = useState(false);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+
+  const containerRef = React.useRef(null);
+  const trackRef = React.useRef(null);
+
+  // Duplicamos las imágenes 2 veces para crear el efecto de loop sin espacios
   const displayItems = [...sources, ...sources];
 
-  // Duración basada en cantidad de imágenes
-  const animationDuration = Math.max(sources.length * 8, 16); // mínimo 16s
+  // Duración basada en cantidad de imágenes originales (velocidad reducida a la mitad)
+  const animationDuration = Math.max(sources.length * 10, 100); // mínimo 30s
+
+  // Detectar si debe animar basado en el tamaño de pantalla y overflow
+  useEffect(() => {
+    const checkShouldAnimate = () => {
+      if (!containerRef.current || !trackRef.current) return;
+
+      const isMobile = window.innerWidth < 768;
+
+      if (isMobile) {
+        // En móvil: animar si hay más de 2 imágenes
+        setShouldAnimate(sources.length > 2);
+      } else {
+        // En web: animar solo si el contenido desborda (ocupa más que el ancho disponible)
+        const containerWidth = containerRef.current.offsetWidth;
+        const trackWidth = trackRef.current.scrollWidth;
+
+        // Si el track es más ancho que el contenedor, hay overflow y debemos animar
+        setShouldAnimate(trackWidth > containerWidth);
+      }
+    };
+
+    // Revisar al montar (con un pequeño delay para que las imágenes carguen)
+    const initialCheck = setTimeout(() => {
+      checkShouldAnimate();
+    }, 100);
+
+    const resizeObserver = new ResizeObserver(checkShouldAnimate);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    window.addEventListener('resize', checkShouldAnimate);
+
+    return () => {
+      clearTimeout(initialCheck);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', checkShouldAnimate);
+    };
+  }, [sources.length]);
 
   const cssAnim = `
-    /* Movimiento horizontal tipo carrusel infinito */
-    @keyframes marquee-scroll {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
+    /* Animación de desplazamiento para el carrusel */
+    @keyframes marquee {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-50%); } /* Mueve exactamente la mitad del contenido duplicado */
     }
 
     /* Respiración suave de luz/contraste en las imágenes */
@@ -229,17 +274,23 @@ function FilmstripOneRow({ sources }) {
       animation: film-sheen 11s linear infinite;
     }
 
+    .filmstrip-container.static {
+      justify-content: center;
+    }
+
     .marquee-track {
       display: flex; 
       gap: 16px; 
       width: max-content;
-      animation: marquee-scroll ${animationDuration}s linear infinite;
-      will-change: transform;
+      ${shouldAnimate ? `animation: marquee ${animationDuration}s linear infinite;` : ''}
+      ${shouldAnimate ? 'will-change: transform;' : ''}
     }
 
     .film-img {
       height: var(--fs-height, 260px);
       width: auto;
+      min-width: 300px;
+      max-width: 500px;
       border-radius: 14px;
       object-fit: cover;
       box-shadow: 0 10px 24px rgba(15, 23, 42, 0.5);
@@ -248,6 +299,7 @@ function FilmstripOneRow({ sources }) {
       border: 1px solid rgba(148, 163, 184, 0.55);
       background: #020617;
       animation: film-img-breath 9s ease-in-out infinite;
+      flex-shrink: 0;
     }
 
     .film-img:hover { 
@@ -259,12 +311,18 @@ function FilmstripOneRow({ sources }) {
   `;
 
   return (
-    <div className="filmstrip-container">
+    <div
+      ref={containerRef}
+      className={`filmstrip-container ${!shouldAnimate ? 'static' : ''}`}
+    >
       <style>{cssAnim}</style>
-      <div className="marquee-track">
+      <div
+        ref={trackRef}
+        className="marquee-track"
+      >
         {displayItems.map((src, i) => (
           <img
-            key={i}
+            key={`${src}-${i}`}
             src={src}
             className="film-img"
             alt={`slide-${i}`}
