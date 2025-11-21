@@ -13,6 +13,7 @@ import {
     DragOutlined
 } from "@ant-design/icons";
 import { EditorTitulo, EditorSubTitulo, EditorTexto, EditorArchivo } from "./BlockEditors";
+import { RendererTitulo, RendererSubTitulo, RendererTexto, RendererArchivo } from "./BlockRenderers";
 import { layoutTemplates, LayoutTemplate } from "./LayoutTemplates";
 import { PresentationMode } from "./PresentationMode";
 import BloqueService from "../../../services/BloqueService";
@@ -32,6 +33,7 @@ export const ContentEditorModal = ({
     const [localLayout, setLocalLayout] = useState(initialLayout);
     const [saving, setSaving] = useState(false);
     const [isPresentationMode, setIsPresentationMode] = useState(false);
+    const [editingBlockId, setEditingBlockId] = useState(null);
 
     // Cargar bloques al abrir modal
     useEffect(() => {
@@ -51,6 +53,8 @@ export const ContentEditorModal = ({
             datosJson: {}
         };
         setLocalBlocks([...localBlocks, newBlock]);
+        // Abrir modal de edición para el nuevo bloque
+        setEditingBlockId(newBlock.id);
     };
 
     // Función para cambiar datos de un bloque
@@ -93,6 +97,9 @@ export const ContentEditorModal = ({
             setSaving(false);
         }
     };
+
+    // Obtener el bloque que se está editando
+    const getEditingBlock = () => localBlocks.find(b => b.id === editingBlockId);
 
     if (!contenido) return null;
 
@@ -196,16 +203,26 @@ export const ContentEditorModal = ({
                                         localBlocks.map((block) => (
                                             <div key={block.id} className={`block-wrapper block-${block.tipoBloque}`}>
                                                 <div className="block-drag-handle"><DragOutlined /></div>
-                                                <div className="block-content">
-                                                    {block.tipoBloque === 'titulo' && <EditorTitulo block={block} onChange={handleLocalBlockChange} />}
-                                                    {block.tipoBloque === 'subtitulo' && <EditorSubTitulo block={block} onChange={handleLocalBlockChange} />}
-                                                    {block.tipoBloque === 'texto' && <EditorTexto block={block} onChange={handleLocalBlockChange} />}
-                                                    {block.tipoBloque === 'archivo' && <EditorArchivo block={block} onChange={handleLocalBlockChange} />}
+                                                <div className="block-content" onClick={() => setEditingBlockId(block.id)} style={{ cursor: 'pointer' }}>
+                                                    {/* Vista previa visual como se verá en público */}
+                                                    {block.tipoBloque === 'titulo' && <RendererTitulo block={block} />}
+                                                    {block.tipoBloque === 'subtitulo' && <RendererSubTitulo block={block} />}
+                                                    {block.tipoBloque === 'texto' && <RendererTexto block={block} />}
+                                                    {block.tipoBloque === 'archivo' && <RendererArchivo block={block} />}
                                                 </div>
                                                 <div className="block-controls">
-                                                    <Popconfirm title="¿Eliminar?" onConfirm={() => handleLocalDeleteBlock(block.id)}>
-                                                        <Button type="text" danger icon={<DeleteOutlined />} size="small" />
-                                                    </Popconfirm>
+                                                    <Space>
+                                                        <Button
+                                                            type="primary"
+                                                            size="small"
+                                                            onClick={() => setEditingBlockId(block.id)}
+                                                        >
+                                                            Editar
+                                                        </Button>
+                                                        <Popconfirm title="¿Eliminar?" onConfirm={() => handleLocalDeleteBlock(block.id)}>
+                                                            <Button type="text" danger icon={<DeleteOutlined />} size="small" />
+                                                        </Popconfirm>
+                                                    </Space>
                                                 </div>
                                             </div>
                                         ))
@@ -274,6 +291,34 @@ export const ContentEditorModal = ({
                     }
                 `}</style>
             </Modal>
+
+            {/* Edit Block Modal */}
+            {editingBlockId && getEditingBlock() && (
+                <Modal
+                    open={true}
+                    onCancel={() => setEditingBlockId(null)}
+                    onOk={() => setEditingBlockId(null)}
+                    title={`Editar ${getEditingBlock().tipoBloque}`}
+                    width={700}
+                    okText="Listo"
+                    cancelText="Cancelar"
+                >
+                    <div style={{ padding: '20px 0' }}>
+                        {getEditingBlock().tipoBloque === 'titulo' && (
+                            <EditorTitulo block={getEditingBlock()} onChange={handleLocalBlockChange} />
+                        )}
+                        {getEditingBlock().tipoBloque === 'subtitulo' && (
+                            <EditorSubTitulo block={getEditingBlock()} onChange={handleLocalBlockChange} />
+                        )}
+                        {getEditingBlock().tipoBloque === 'texto' && (
+                            <EditorTexto block={getEditingBlock()} onChange={handleLocalBlockChange} />
+                        )}
+                        {getEditingBlock().tipoBloque === 'archivo' && (
+                            <EditorArchivo block={getEditingBlock()} onChange={handleLocalBlockChange} />
+                        )}
+                    </div>
+                </Modal>
+            )}
 
             {/* Presentation Mode */}
             {isPresentationMode && (

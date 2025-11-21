@@ -4,10 +4,9 @@ import { Button } from "antd";
 import {
     LeftOutlined,
     RightOutlined,
-    CloseOutlined,
-    FilePdfOutlined,
-    FileOutlined
+    CloseOutlined
 } from "@ant-design/icons";
+import { RendererTitulo, RendererSubTitulo, RendererTexto, RendererArchivo } from "./BlockRenderers";
 
 export const PresentationMode = ({ blocks, layout, onClose }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -31,58 +30,18 @@ export const PresentationMode = ({ blocks, layout, onClose }) => {
     const currentBlock = blocks[currentSlide];
 
     const renderBlock = () => {
-        const { tipoBloque, datosJson } = currentBlock;
-
-        if (tipoBloque === 'titulo') {
-            return <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: 24 }}>{datosJson.texto || ''}</h1>;
+        switch (currentBlock.tipoBloque) {
+            case 'titulo':
+                return <div style={{ fontSize: '3rem' }}><RendererTitulo block={currentBlock} /></div>;
+            case 'subtitulo':
+                return <div style={{ fontSize: '2rem' }}><RendererSubTitulo block={currentBlock} /></div>;
+            case 'texto':
+                return <div style={{ fontSize: '1.3rem' }}><RendererTexto block={currentBlock} /></div>;
+            case 'archivo':
+                return <RendererArchivo block={currentBlock} />;
+            default:
+                return null;
         }
-        if (tipoBloque === 'subtitulo') {
-            return <h2 style={{ fontSize: '2rem', fontWeight: '600', color: '#444', marginBottom: 20 }}>{datosJson.texto || ''}</h2>;
-        }
-        if (tipoBloque === 'texto') {
-            return <p style={{ fontSize: '1.3rem', lineHeight: 1.8, color: '#333' }}>{datosJson.descripcion || ''}</p>;
-        }
-        if (tipoBloque === 'archivo') {
-            const { nombre, descripcion, url } = datosJson;
-            if (!url) return <p>Sin archivo</p>;
-
-            const getFileType = (url) => {
-                if (!url) return 'unknown';
-                const ext = url.split('.').pop().toLowerCase();
-                if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return 'image';
-                if (['mp4', 'webm', 'ogg', 'mov'].includes(ext)) return 'video';
-                if (ext === 'pdf') return 'pdf';
-                return 'file';
-            };
-
-            const fileType = getFileType(url);
-
-            return (
-                <div style={{ margin: '24px 0' }}>
-                    {nombre && <h3 style={{ fontSize: '1.5rem', marginBottom: 12 }}>{nombre}</h3>}
-                    {descripcion && <p style={{ fontSize: '1.1rem', color: '#666', marginBottom: 16 }}>{descripcion}</p>}
-                    {fileType === 'image' && url && (
-                        <img src={url} alt={nombre || 'Imagen'} style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 8 }} />
-                    )}
-                    {fileType === 'video' && url && (
-                        <video src={url} controls style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: 8 }} />
-                    )}
-                    {fileType === 'pdf' && url && (
-                        <div style={{ padding: 24, background: '#f5f5f5', borderRadius: 8, textAlign: 'center' }}>
-                            <FilePdfOutlined style={{ fontSize: 64, color: '#ff4d4f', marginBottom: 16 }} />
-                            <div><a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '1.2rem' }}>Abrir PDF</a></div>
-                        </div>
-                    )}
-                    {fileType === 'file' && url && (
-                        <div style={{ padding: 24, background: '#f5f5f5', borderRadius: 8, textAlign: 'center' }}>
-                            <FileOutlined style={{ fontSize: 64, color: '#1890ff', marginBottom: 16 }} />
-                            <div><a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '1.2rem' }}>Descargar</a></div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-        return null;
     };
 
     return (
