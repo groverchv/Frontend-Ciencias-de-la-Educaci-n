@@ -8,11 +8,12 @@ import GestionarUsuario from "../pages/Dashboard/GestionarUsuario";
 import PrivateRoute from "../components/PrivateRoute";
 import GestionarMenu from "../pages/Dashboard/GestionarMenu";
 import GestionarSub_Menu from "../pages/Dashboard/GestionarSub_Menu";
-import GestionarContenido from "../pages/Dashboard/GestionarContenido";
+import GestionarContenido from "../pages/Dashboard/Contenido/GestionarContenido";
 import GestionarRol from "../pages/Dashboard/GestionarRol";
 import GestionarPermiso from "../pages/Dashboard/GestionarPermiso";
 import AdministrarBitacora from "../pages/Dashboard/AdministrarBitacora";
 import GestionarPresentacion from "../pages/Dashboard/GestionarPresentacion";
+import ContenidoDinamico from "../components/ContenidoDinamico";
 
 export default function AppRoutes() {
   return (
@@ -39,6 +40,9 @@ export default function AppRoutes() {
         <Route path="bitacora" element={<AdministrarBitacora />} />
         <Route path="presentacion" element={<GestionarPresentacion />} />
       </Route>
+
+      {/* Ruta dinámica para contenido de bloques - captura cualquier ruta */}
+      <Route path="/*" element={<ContenidoDinamico />} />
     </Routes>
   );
 }
