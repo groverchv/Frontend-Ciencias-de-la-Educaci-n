@@ -1,8 +1,20 @@
 // src/pages/Dashboard/Contenido/BlockRenderers.jsx
 import React from 'react';
 import { Typography } from 'antd';
+import DOMPurify from 'dompurify';
 
 const { Title, Paragraph } = Typography;
+
+// Helper: Sanitize and render HTML content
+const renderHTML = (htmlContent) => {
+    if (!htmlContent) return null;
+    // Remove HTML tags to check if empty
+    const textOnly = htmlContent.replace(/<[^>]*>/g, '').trim();
+    if (!textOnly) return null;
+
+    const sanitized = DOMPurify.sanitize(htmlContent);
+    return <div dangerouslySetInnerHTML={{ __html: sanitized }} />;
+};
 
 // Helper: Convertir URLs de Google Drive a formato directo e iframe
 export const convertGoogleDriveUrl = (url) => {
@@ -30,25 +42,99 @@ export const convertGoogleDriveUrl = (url) => {
 };
 
 // Renderizador visual de Título
-export const RendererTitulo = ({ block }) => (
-    <Title level={1} style={{ marginTop: 32, marginBottom: 16 }}>
-        {block.datosJson.texto || "Sin título"}
-    </Title>
-);
+export const RendererTitulo = ({ block }) => {
+    const htmlContent = block.datosJson.texto;
+
+    if (!htmlContent || htmlContent.trim() === '') {
+        return <Title level={1} style={{ marginTop: 32, marginBottom: 16 }}>Sin título</Title>;
+    }
+
+    return (
+        <div style={{ marginTop: 32, marginBottom: 16 }} className="rendered-title">
+            {renderHTML(htmlContent)}
+        </div>
+    );
+};
 
 // Renderizador visual de Subtítulo
-export const RendererSubTitulo = ({ block }) => (
-    <Title level={2} style={{ marginTop: 24, marginBottom: 12 }}>
-        {block.datosJson.texto || "Sin subtítulo"}
-    </Title>
-);
+export const RendererSubTitulo = ({ block }) => {
+    const htmlContent = block.datosJson.texto;
+
+    if (!htmlContent || htmlContent.trim() === '') {
+        return <Title level={2} style={{ marginTop: 24, marginBottom: 12 }}>Sin subtítulo</Title>;
+    }
+
+    return (
+        <div style={{ marginTop: 24, marginBottom: 12 }} className="rendered-subtitle">
+            {renderHTML(htmlContent)}
+        </div>
+    );
+};
 
 // Renderizador visual de Texto
-export const RendererTexto = ({ block }) => (
-    <Paragraph style={{ fontSize: "16px", lineHeight: 1.8, marginBottom: 24 }}>
-        {block.datosJson.descripcion || "Sin contenido"}
-    </Paragraph>
-);
+export const RendererTexto = ({ block }) => {
+    const htmlContent = block.datosJson.descripcion;
+
+    if (!htmlContent || htmlContent.trim() === '') {
+        return <Paragraph style={{ fontSize: "16px", lineHeight: 1.8, marginBottom: 24 }}>Sin contenido</Paragraph>;
+    }
+
+    return (
+        <div style={{ fontSize: "16px", lineHeight: 1.8, marginBottom: 24 }} className="rendered-text">
+            {renderHTML(htmlContent)}
+        </div>
+    );
+};
+
+// Renderizador visual de Tabla
+export const RendererTabla = ({ block }) => {
+    const { rows = 3, cols = 3, data = [], headerBg = '#1890ff', headerColor = '#ffffff', borderColor = '#d9d9d9' } = block.datosJson;
+
+    if (!data.length) {
+        return <div style={{ padding: 20, background: '#f5f5f5', borderRadius: 4, textAlign: 'center' }}>Tabla vacía</div>;
+    }
+
+    return (
+        <div style={{ marginBottom: 32, overflowX: 'auto' }}>
+            <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                border: `1px solid ${borderColor}`
+            }}>
+                <thead>
+                    <tr>
+                        {data[0] && data[0].map((cell, colIdx) => (
+                            <th key={colIdx} style={{
+                                background: headerBg,
+                                color: headerColor,
+                                border: `1px solid ${borderColor}`,
+                                padding: '12px',
+                                fontWeight: 'bold',
+                                textAlign: 'left'
+                            }}>
+                                {cell || `Columna ${colIdx + 1}`}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {data.slice(1).map((row, rowIdx) => (
+                        <tr key={rowIdx}>
+                            {row.map((cell, colIdx) => (
+                                <td key={colIdx} style={{
+                                    border: `1px solid ${borderColor}`,
+                                    padding: '12px'
+                                }}>
+                                    {cell}
+                                </td>
+                            ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+};
 
 // Renderizador visual de Archivo
 export const RendererArchivo = ({ block }) => {

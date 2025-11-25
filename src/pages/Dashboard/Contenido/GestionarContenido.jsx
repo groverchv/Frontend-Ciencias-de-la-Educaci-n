@@ -1,5 +1,6 @@
-// src/pages/Dashboard/Contenido/Gestion arContenido.jsx
+// src/pages/Dashboard/Contenido/GestionarContenido.jsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     Button,
     Select,
@@ -28,15 +29,13 @@ import {
 import MenuService from "../../../services/MenuService.js";
 import Sub_MenuService from "../../../services/Sub_MenuService.js";
 import ContenidoService from "../../../services/ContenidoService.js";
-import BloqueService from "../../../services/BloqueService.js";
-
-// Components
-import { ContentEditorModal } from "./ContentEditorModal";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 export default function GestionarContenido() {
+    const navigate = useNavigate();
+
     // Estados para navegación
     const [menus, setMenus] = useState([]);
     const [subMenus, setSubMenus] = useState([]);
@@ -47,12 +46,6 @@ export default function GestionarContenido() {
     // Estados para contenidos
     const [contenidos, setContenidos] = useState([]);
     const [loadingContenidos, setLoadingContenidos] = useState(false);
-
-    // Estados para edición
-    const [editorVisible, setEditorVisible] = useState(false);
-    const [editingContenido, setEditingContenido] = useState(null);
-    const [editorBlocks, setEditorBlocks] = useState([]);
-    const [selectedLayout, setSelectedLayout] = useState('default');
 
     // Estados para crear contenido
     const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -148,17 +141,9 @@ export default function GestionarContenido() {
         }
     };
 
-    // Abrir editor para un contenido
-    const handleEditContenido = async (contenido) => {
-        setEditingContenido(contenido);
-        // Cargar bloques de este contenido
-        try {
-            const bloques = await BloqueService.getBlocksByContenido(contenido.id);
-            setEditorBlocks(Array.isArray(bloques) ? bloques : []);
-            setEditorVisible(true);
-        } catch (error) {
-            message.error("Error al cargar bloques del contenido");
-        }
+    // Navegar al editor para un contenido
+    const handleEditContenido = (contenido) => {
+        navigate(`/dashboard/contenido/editar/${contenido.id}`);
     };
 
     // Eliminar contenido
@@ -173,14 +158,7 @@ export default function GestionarContenido() {
         }
     };
 
-    // Guardar desde modal
-    const handleSaveFromModal = async (contenidoId, layout) => {
-        setSelectedLayout(layout);
-        setEditorVisible(false);
-        setEditingContenido(null);
-        // Recargar lista
-        await handleSubMenuChange(selectedSubMenu);
-    };
+
 
     // Columnas para tabla de contenidos
     const columns = [
@@ -350,18 +328,7 @@ export default function GestionarContenido() {
                 />
             </Modal>
 
-            {/* Modal de edición */}
-            <ContentEditorModal
-                visible={editorVisible}
-                contenido={editingContenido}
-                initialBlocks={editorBlocks}
-                onClose={() => {
-                    setEditorVisible(false);
-                    setEditingContenido(null);
-                }}
-                onSave={handleSaveFromModal}
-                initialLayout={selectedLayout}
-            />
+
         </div>
     );
 }

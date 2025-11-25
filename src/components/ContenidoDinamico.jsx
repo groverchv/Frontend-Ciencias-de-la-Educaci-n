@@ -3,9 +3,11 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Spin, Empty, Alert, Typography, Divider } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
+import DOMPurify from 'dompurify';
 import ContenidoService from "../services/ContenidoService";
 import BloqueService from "../services/BloqueService";
 import Sub_MenuService from "../services/Sub_MenuService";
+import { RendererTitulo, RendererSubTitulo, RendererTexto, RendererArchivo, RendererTabla } from "../pages/Dashboard/Contenido/BlockRenderers";
 
 const { Title, Paragraph } = Typography;
 
@@ -31,16 +33,17 @@ export default function ContenidoDinamico() {
                 setLoading(true);
                 setError(null);
 
-                console.log("Buscando contenido para ruta:", ruta);
+                console.log("🔍 Buscando contenido para ruta:", ruta);
 
                 // 1. Buscar el SubMenu por su ruta
                 const allSubMenus = await Sub_MenuService.getAllSubMenu();
-                console.log("Todos los SubMenus:", allSubMenus);
+                console.log("📋 Todos los SubMenus:", allSubMenus);
 
                 const foundSubMenu = allSubMenus.find((sm) => sm.ruta === ruta);
-                console.log("SubMenu encontrado:", foundSubMenu);
+                console.log("✅ SubMenu encontrado:", foundSubMenu);
 
                 if (!foundSubMenu) {
+                    console.error("❌ No se encontró SubMenu para la ruta:", ruta);
                     setError(`No se encontró contenido para la ruta: ${ruta}`);
                     setLoading(false);
                     return;
@@ -50,32 +53,56 @@ export default function ContenidoDinamico() {
 
                 // 2. Obtener todos los Contenidos de este SubMenu
                 const contenidosData = await ContenidoService.getContenidosBySubMenu(foundSubMenu.id);
-                console.log("Contenidos encontrados:", contenidosData);
+                console.log("📄 Contenidos encontrados:", contenidosData);
+                console.log("📊 Total de contenidos:", contenidosData.length);
 
-                // 3. Para cada Contenido activo, cargar sus bloques
+                // 3. Para cada Contenido activo, cargar sus bloques Y el contenido completo
                 const contenidosConBloques = [];
                 for (const contenido of contenidosData) {
+                    console.log(`\n🔎 Procesando contenido #${contenido.id}:`, contenido);
+                    console.log(`   - Título: ${contenido.titulo}`);
+                    console.log(`   - Estado: ${contenido.estado}`);
+
                     if (contenido.estado) {
                         try {
+                            // Obtener el contenido completo con contenidoHtml
+                            const contenidoCompleto = await ContenidoService.getContenidoById(contenido.id);
+                            console.log(`   - Contenido HTML presente:`, !!contenidoCompleto.contenidoHtml);
+                            if (contenidoCompleto.contenidoHtml) {
+                                console.log(`   - Longitud del HTML:`, contenidoCompleto.contenidoHtml.length);
+                                console.log(`   - Preview del HTML:`, contenidoCompleto.contenidoHtml.substring(0, 100) + '...');
+                            }
+
                             const bloques = await BloqueService.getBlocksByContenido(contenido.id);
+                            console.log(`   - Bloques encontrados:`, bloques.length);
+
                             const bloquesActivos = bloques
                                 .filter((b) => b.estado === true)
                                 .sort((a, b) => (a.orden || 0) - (b.orden || 0));
+                            console.log(`   - Bloques activos:`, bloquesActivos.length);
 
-                            if (bloquesActivos.length > 0) {
+                            // Agregar contenido si tiene contenidoHtml O bloques activos
+                            if (contenidoCompleto.contenidoHtml || bloquesActivos.length > 0) {
+                                console.log(`   ✅ Contenido agregado a la lista`);
                                 contenidosConBloques.push({
-                                    ...contenido,
+                                    ...contenidoCompleto,
                                     bloques: bloquesActivos
                                 });
+                            } else {
+                                console.log(`   ⚠️ Contenido omitido (sin HTML ni bloques activos)`);
                             }
                         } catch (err) {
-                            console.error(`Error cargando bloques del contenido ${contenido.id}:`, err);
+                            console.error(`❌ Error cargando contenido ${contenido.id}:`, err);
                         }
+                    } else {
+                        console.log(`   ⏭️ Contenido omitido (estado = false)`);
                     }
                 }
 
                 // Ordenar contenidos por orden
                 contenidosConBloques.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+                console.log("\n✨ Contenidos finales a renderizar:", contenidosConBloques.length);
+                console.log("📦 Contenidos con datos:", contenidosConBloques);
                 setContenidos(contenidosConBloques);
 
             } catch (err) {
@@ -89,212 +116,21 @@ export default function ContenidoDinamico() {
         loadContenido();
     }, [ruta]);
 
-    // Helper: Convertir URLs de Google Drive a formato directo e iframe
-    const convertGoogleDriveUrl = (url) => {
-        if (!url) return { directUrl: url, previewUrl: url, isGoogleDrive: false };
-
-        // Detectar URLs de Google Drive y extraer FILE_ID
-        const drivePatterns = [
-            /drive\.google\.com\/file\/d\/([^\/]+)/,
-            /drive\.google\.com\/open\?id=([^&]+)/,
-            /drive\.google\.com\/uc\?id=([^&]+)/
-        ];
-
-        for (const pattern of drivePatterns) {
-            const match = url.match(pattern);
-            if (match && match[1]) {
-                const fileId = match[1];
-                return {
-                    directUrl: `https://drive.google.com/uc?export=view&id=${fileId}`,
-                    previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
-                    isGoogleDrive: true
-                };
-            }
-        }
-
-        return { directUrl: url, previewUrl: url, isGoogleDrive: false };
-    };
-
-    // Renderizar cada tipo de bloque
+    // Renderizar cada tipo de bloque usando los renderers centralizados
     const renderBloque = (bloque) => {
-        const { tipoBloque, datosJson } = bloque;
+        const { tipoBloque } = bloque;
 
         switch (tipoBloque) {
             case "titulo":
-                return (
-                    <Title level={1} style={{ marginTop: 32, marginBottom: 16 }}>
-                        {datosJson.texto || ""}
-                    </Title>
-                );
-
+                return <RendererTitulo block={bloque} />;
             case "subtitulo":
-                return (
-                    <Title level={2} style={{ marginTop: 24, marginBottom: 12 }}>
-                        {datosJson.texto || ""}
-                    </Title>
-                );
-
+                return <RendererSubTitulo block={bloque} />;
             case "texto":
-                return (
-                    <Paragraph style={{ fontSize: "16px", lineHeight: 1.8, marginBottom: 24 }}>
-                        {datosJson.descripcion || ""}
-                    </Paragraph>
-                );
-
+                return <RendererTexto block={bloque} />;
             case "archivo":
-                const { url, nombre, descripcion } = datosJson;
-                if (!url) return null;
-
-                // Convertir URL si es de Google Drive
-                const { directUrl, previewUrl, isGoogleDrive } = convertGoogleDriveUrl(url);
-
-                // Detectar tipo de archivo (solo para archivos no-google drive)
-                let ext = '';
-                if (directUrl.includes('.')) {
-                    ext = directUrl.split('.').pop().toLowerCase().split('?')[0];
-                }
-
-                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-                const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(ext);
-                const isPDF = ext === 'pdf';
-
-                return (
-                    <div style={{ marginBottom: 32 }}>
-                        {/* PRIMERO: Mostrar el archivo visual */}
-                        {isGoogleDrive ? (
-                            // Google Drive: usar iframe para preview
-                            <div style={{ marginBottom: 16 }}>
-                                <iframe
-                                    src={previewUrl}
-                                    style={{
-                                        width: '100%',
-                                        height: '500px',
-                                        border: 'none',
-                                        borderRadius: 8,
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                    }}
-                                    allow="autoplay"
-                                    title={nombre || 'Archivo de Google Drive'}
-                                />
-                                <div style={{ marginTop: 8, textAlign: 'center', fontSize: 12, color: '#888' }}>
-                                    <a
-                                        href={url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{ color: "#2563eb" }}
-                                    >
-                                        📂 Abrir en Google Drive
-                                    </a>
-                                </div>
-                            </div>
-                        ) : (
-                            // Archivos normales
-                            <>
-                                {isImage && (
-                                    <img
-                                        src={directUrl}
-                                        alt={nombre || 'Imagen'}
-                                        style={{
-                                            maxWidth: '100%',
-                                            height: 'auto',
-                                            borderRadius: 8,
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                            marginBottom: 16
-                                        }}
-                                        onError={(e) => {
-                                            console.error('Error cargando imagen:', directUrl);
-                                            e.target.style.display = 'none';
-                                        }}
-                                    />
-                                )}
-                                {isVideo && (
-                                    <video
-                                        src={directUrl}
-                                        controls
-                                        style={{
-                                            maxWidth: '100%',
-                                            borderRadius: 8,
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                            marginBottom: 16
-                                        }}
-                                    />
-                                )}
-                                {isPDF && (
-                                    <div style={{ marginBottom: 16 }}>
-                                        <embed
-                                            src={directUrl}
-                                            type="application/pdf"
-                                            style={{
-                                                width: '100%',
-                                                height: '600px',
-                                                borderRadius: 8,
-                                                border: '1px solid #e5e7eb'
-                                            }}
-                                        />
-                                        <div style={{ marginTop: 8, textAlign: 'center' }}>
-                                            <a
-                                                href={directUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                style={{
-                                                    color: "#2563eb",
-                                                    textDecoration: "none",
-                                                    fontSize: "14px",
-                                                }}
-                                            >
-                                                📄 Abrir PDF en nueva pestaña
-                                            </a>
-                                        </div>
-                                    </div>
-                                )}
-                                {!isImage && !isVideo && !isPDF && (
-                                    <div
-                                        style={{
-                                            padding: 20,
-                                            background: "#f9fafb",
-                                            borderRadius: 8,
-                                            border: "1px solid #e5e7eb",
-                                            marginBottom: 16,
-                                            textAlign: 'center'
-                                        }}
-                                    >
-                                        <span style={{ fontSize: 48 }}>📎</span>
-                                        <div style={{ marginTop: 12 }}>
-                                            <a
-                                                href={directUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                style={{
-                                                    color: "#2563eb",
-                                                    textDecoration: "none",
-                                                    fontSize: "16px",
-                                                    fontWeight: 600
-                                                }}
-                                            >
-                                                Descargar archivo
-                                            </a>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-
-                        {/* SEGUNDO: Mostrar el título */}
-                        {nombre && (
-                            <Title level={3} style={{ marginTop: 0, marginBottom: 8 }}>
-                                {nombre}
-                            </Title>
-                        )}
-
-                        {/* TERCERO: Mostrar la descripción */}
-                        {descripcion && (
-                            <Paragraph style={{ fontSize: '16px', color: '#555', lineHeight: 1.8 }}>
-                                {descripcion}
-                            </Paragraph>
-                        )}
-                    </div>
-                );
-
+                return <RendererArchivo block={bloque} />;
+            case "tabla":
+                return <RendererTabla block={bloque} />;
             default:
                 return null;
         }
@@ -347,18 +183,32 @@ export default function ContenidoDinamico() {
     return (
         <div
             style={{
-                maxWidth: 900,
+                width: "100%",
+                maxWidth: "1400px",
                 margin: "0 auto",
-                padding: "40px 20px",
+                padding: "40px 60px",
                 minHeight: "60vh",
             }}
         >
             {contenidos.map((contenido, idx) => (
                 <div key={contenido.id}>
-                    {/* Mostrar bloques del contenido */}
-                    {contenido.bloques.map((bloque) => (
-                        <div key={bloque.id}>{renderBloque(bloque)}</div>
-                    ))}
+                    {/* Renderizar contenido HTML si existe, sino mostrar bloques (retrocompatibilidad) */}
+                    {contenido.contenidoHtml ? (
+                        <div
+                            className="rich-content"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contenido.contenidoHtml) }}
+                            style={{
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                                lineHeight: 1.6,
+                                color: '#333'
+                            }}
+                        />
+                    ) : (
+                        /* Mostrar bloques del contenido (sistema antiguo) */
+                        contenido.bloques?.map((bloque) => (
+                            <div key={bloque.id}>{renderBloque(bloque)}</div>
+                        ))
+                    )}
 
                     {/* Separador entre contenidos (excepto el último) */}
                     {idx < contenidos.length - 1 && (
@@ -366,6 +216,52 @@ export default function ContenidoDinamico() {
                     )}
                 </div>
             ))}
+
+            {/* Estilos para contenido HTML */}
+            <style>{`
+                .rich-content h1,
+                .rich-content h2,
+                .rich-content h3,
+                .rich-content h4,
+                .rich-content h5,
+                .rich-content h6 {
+                    margin-top: 24px;
+                    margin-bottom: 16px;
+                    font-weight: 600;
+                    line-height: 1.25;
+                }
+                .rich-content img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                .rich-content table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 16px 0;
+                }
+                .rich-content table td,
+                .rich-content table th {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                }
+                .rich-content blockquote {
+                    border-left: 4px solid #ddd;
+                    padding-left: 16px;
+                    margin: 16px 0;
+                    color: #666;
+                }
+                .rich-content pre {
+                    background: #f5f5f5;
+                    padding: 16px;
+                    border-radius: 4px;
+                    overflow-x: auto;
+                }
+                .rich-content ul,
+                .rich-content ol {
+                    padding-left: 24px;
+                    margin: 12px 0;
+                }
+            `}</style>
         </div>
     );
 }

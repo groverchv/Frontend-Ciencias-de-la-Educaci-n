@@ -1,48 +1,12 @@
 // src/pages/Dashboard/Contenido/PresentationMode.jsx
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Button } from "antd";
-import {
-    LeftOutlined,
-    RightOutlined,
-    CloseOutlined
-} from "@ant-design/icons";
-import { RendererTitulo, RendererSubTitulo, RendererTexto, RendererArchivo } from "./BlockRenderers";
+import { CloseOutlined } from "@ant-design/icons";
+import DOMPurify from 'dompurify';
 
-export const PresentationMode = ({ blocks, layout, onClose }) => {
-    const [currentSlide, setCurrentSlide] = useState(0);
-
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape') onClose();
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-                setCurrentSlide(prev => Math.min(prev + 1, blocks.length - 1));
-            }
-            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-                setCurrentSlide(prev => Math.max(prev - 1, 0));
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [blocks.length, onClose]);
-
-    if (blocks.length === 0) return null;
-
-    const currentBlock = blocks[currentSlide];
-
-    const renderBlock = () => {
-        switch (currentBlock.tipoBloque) {
-            case 'titulo':
-                return <div style={{ fontSize: '3rem' }}><RendererTitulo block={currentBlock} /></div>;
-            case 'subtitulo':
-                return <div style={{ fontSize: '2rem' }}><RendererSubTitulo block={currentBlock} /></div>;
-            case 'texto':
-                return <div style={{ fontSize: '1.3rem' }}><RendererTexto block={currentBlock} /></div>;
-            case 'archivo':
-                return <RendererArchivo block={currentBlock} />;
-            default:
-                return null;
-        }
-    };
+export const PresentationMode = ({ contenidoHtml, onClose }) => {
+    // Sanitizar HTML para prevenir XSS
+    const sanitizedHtml = DOMPurify.sanitize(contenidoHtml || '');
 
     return (
         <div style={{
@@ -65,67 +29,80 @@ export const PresentationMode = ({ blocks, layout, onClose }) => {
                 borderBottom: '1px solid #e8e8e8',
                 background: '#fafafa'
             }}>
-                <div style={{ fontSize: '14px', color: '#666' }}>
-                    Diapositiva {currentSlide + 1} de {blocks.length}
+                <div style={{ fontSize: '16px', fontWeight: 600 }}>
+                    Vista Previa
                 </div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <Button
-                        icon={<LeftOutlined />}
-                        onClick={() => setCurrentSlide(prev => Math.max(prev - 1, 0))}
-                        disabled={currentSlide === 0}
-                        size="large"
-                    >
-                        Anterior
-                    </Button>
-                    <Button
-                        icon={<RightOutlined />}
-                        onClick={() => setCurrentSlide(prev => Math.min(prev + 1, blocks.length - 1))}
-                        disabled={currentSlide === blocks.length - 1}
-                        size="large"
-                        type="primary"
-                    >
-                        Siguiente
-                    </Button>
-                    <Button
-                        icon={<CloseOutlined />}
-                        onClick={onClose}
-                        size="large"
-                        danger
-                    >
-                        Salir
-                    </Button>
-                </div>
+                <Button
+                    icon={<CloseOutlined />}
+                    onClick={onClose}
+                    size="large"
+                    danger
+                >
+                    Salir
+                </Button>
             </div>
 
             {/* Content */}
             <div style={{
                 flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                overflow: 'auto',
                 padding: '48px',
-                overflow: 'auto'
+                display: 'flex',
+                justifyContent: 'center'
             }}>
-                <div className={`slide-content layout-${layout}`} style={{
-                    maxWidth: '1200px',
-                    width: '100%',
-                    animation: 'slideIn 0.3s ease'
-                }}>
-                    {renderBlock()}
-                </div>
+                <div
+                    className="rich-content-preview"
+                    style={{
+                        maxWidth: '1200px',
+                        width: '100%'
+                    }}
+                    dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+                />
             </div>
 
-            {/* CSS */}
+            {/* CSS para estilos del contenido */}
             <style>{`
-                @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translateX(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
+                .rich-content-preview {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                }
+                .rich-content-preview h1,
+                .rich-content-preview h2,
+                .rich-content-preview h3,
+                .rich-content-preview h4,
+                .rich-content-preview h5,
+                .rich-content-preview h6 {
+                    margin-top: 24px;
+                    margin-bottom: 16px;
+                    font-weight: 600;
+                    line-height: 1.25;
+                }
+                .rich-content-preview img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                .rich-content-preview table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 16px 0;
+                }
+                .rich-content-preview table td,
+                .rich-content-preview table th {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                }
+                .rich-content-preview blockquote {
+                    border-left: 4px solid #ddd;
+                    padding-left: 16px;
+                    margin: 16px 0;
+                    color: #666;
+                }
+                .rich-content-preview pre {
+                    background: #f5f5f5;
+                    padding: 16px;
+                    border-radius: 4px;
+                    overflow-x: auto;
                 }
             `}</style>
         </div>
