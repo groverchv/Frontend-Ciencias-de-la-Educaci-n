@@ -8,6 +8,9 @@ import ContenidoService from "../services/ContenidoService";
 import BloqueService from "../services/BloqueService";
 import Sub_MenuService from "../services/Sub_MenuService";
 import { RendererTitulo, RendererSubTitulo, RendererTexto, RendererArchivo, RendererTabla } from "../pages/Dashboard/Contenido/BlockRenderers";
+import 'react-quill-new/dist/quill.snow.css';
+import './RichTextEditor.css';
+import './QuillFonts.css';
 
 const { Title, Paragraph } = Typography;
 
@@ -260,6 +263,70 @@ export default function ContenidoDinamico() {
                 .rich-content ol {
                     padding-left: 24px;
                     margin: 12px 0;
+                }
+                
+                /* Quill text formatting */
+                .rich-content strong {
+                    font-weight: bold;
+                }
+                .rich-content em {
+                    font-style: italic;
+                }
+                .rich-content u {
+                    text-decoration: underline;
+                }
+                .rich-content s {
+                    text-decoration: line-through;
+                }
+                
+                /* Quill alignment */
+                .rich-content .ql-align-center {
+                    text-align: center;
+                }
+                .rich-content .ql-align-right {
+                    text-align: right;
+                }
+                .rich-content .ql-align-justify {
+                    text-align: justify;
+                }
+                
+                /* Quill indentation */
+                .rich-content .ql-indent-1 {
+                    padding-left: 3em;
+                }
+                .rich-content .ql-indent-2 {
+                    padding-left: 6em;
+                }
+                .rich-content .ql-indent-3 {
+                    padding-left: 9em;
+                }
+                .rich-content .ql-indent-4 {
+                    padding-left: 12em;
+                }
+                .rich-content .ql-indent-5 {
+                    padding-left: 15em;
+                }
+                .rich-content .ql-indent-6 {
+                    padding-left: 18em;
+                }
+                .rich-content .ql-indent-7 {
+                    padding-left: 21em;
+                }
+                .rich-content .ql-indent-8 {
+                    padding-left: 24em;
+                }
+                
+                /* Quill links */
+                .rich-content a {
+                    color: #06c;
+                    text-decoration: underline;
+                }
+                
+                /* Quill code blocks */
+                .rich-content pre.ql-syntax {
+                    background-color: #23241f;
+                    color: #f8f8f2;
+                    overflow: visible;
                 }
             `}</style>
         </div>

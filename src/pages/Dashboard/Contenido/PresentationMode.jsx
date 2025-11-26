@@ -3,6 +3,9 @@ import React from "react";
 import { Button } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import DOMPurify from 'dompurify';
+import 'react-quill-new/dist/quill.snow.css';
+import '../../../components/RichTextEditor.css';
+import '../../../components/QuillFonts.css';
 
 export const PresentationMode = ({ contenidoHtml, onClose }) => {
     // Sanitizar HTML para prevenir XSS
@@ -103,6 +106,75 @@ export const PresentationMode = ({ contenidoHtml, onClose }) => {
                     padding: 16px;
                     border-radius: 4px;
                     overflow-x: auto;
+                }
+                .rich-content-preview ul,
+                .rich-content-preview ol {
+                    padding-left: 24px;
+                    margin: 12px 0;
+                }
+                
+                /* Quill text formatting */
+                .rich-content-preview strong {
+                    font-weight: bold;
+                }
+                .rich-content-preview em {
+                    font-style: italic;
+                }
+                .rich-content-preview u {
+                    text-decoration: underline;
+                }
+                .rich-content-preview s {
+                    text-decoration: line-through;
+                }
+                
+                /* Quill alignment */
+                .rich-content-preview .ql-align-center {
+                    text-align: center;
+                }
+                .rich-content-preview .ql-align-right {
+                    text-align: right;
+                }
+                .rich-content-preview .ql-align-justify {
+                    text-align: justify;
+                }
+                
+                /* Quill indentation */
+                .rich-content-preview .ql-indent-1 {
+                    padding-left: 3em;
+                }
+                .rich-content-preview .ql-indent-2 {
+                    padding-left: 6em;
+                }
+                .rich-content-preview .ql-indent-3 {
+                    padding-left: 9em;
+                }
+                .rich-content-preview .ql-indent-4 {
+                    padding-left: 12em;
+                }
+                .rich-content-preview .ql-indent-5 {
+                    padding-left: 15em;
+                }
+                .rich-content-preview .ql-indent-6 {
+                    padding-left: 18em;
+                }
+                .rich-content-preview .ql-indent-7 {
+                    padding-left: 21em;
+                }
+                .rich-content-preview .ql-indent-8 {
+                    padding-left: 24em;
+                }
+                
+                /* Quill links */
+                .rich-content-preview a {
+                    color: #06c;
+                    text-decoration: underline;
+                }
+                
+                /* Quill code blocks */
+                .rich-content-preview pre.ql-syntax {
+                    background-color: #23241f;
+                    color: #f8f8f2;
+                    overflow: visible;
                 }
             `}</style>
         </div>

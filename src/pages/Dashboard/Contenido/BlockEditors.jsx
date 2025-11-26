@@ -10,7 +10,7 @@ import {
     PlusOutlined,
     DeleteOutlined
 } from "@ant-design/icons";
-import RichTextEditor from "../../../components/RichTextEditor";
+import RichTextEditor from "../../../components/RichTextEditorFull";
 
 const { Option } = Select;
 

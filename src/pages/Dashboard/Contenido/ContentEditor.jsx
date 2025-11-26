@@ -9,7 +9,8 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import { PresentationMode } from "./PresentationMode";
 import ContenidoService from "../../../services/ContenidoService";
-import RichTextEditor from "../../../components/RichTextEditor";
+import RichTextEditor from "../../../components/RichTextEditorFull";
+import "./ContentEditor.css";
 
 const { Title, Text } = Typography;
 
@@ -114,26 +115,11 @@ export default function ContentEditor() {
 
     return (
         <>
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 1000,
-                backgroundColor: '#fff',
-                display: 'flex',
-                flexDirection: 'column'
-            }}>
+            <div className="content-editor-wrapper">
                 {/* Header */}
-                <div style={{
-                    padding: '16px 24px',
-                    background: 'white',
-                    borderBottom: '1px solid #f0f0f0',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-                }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="editor-header">
+                    <div className="editor-header-content">
+                        <div className="editor-title-section">
                             <Button
                                 icon={<ArrowLeftOutlined />}
                                 onClick={handleGoBack}
@@ -147,7 +133,7 @@ export default function ContentEditor() {
                                 <Text type="secondary">ID: {contenido.id}</Text>
                             </div>
                         </div>
-                        <Space>
+                        <Space className="editor-actions">
                             <Button
                                 icon={<FullscreenOutlined />}
                                 onClick={() => setIsPresentationMode(true)}
@@ -174,18 +160,8 @@ export default function ContentEditor() {
                 </div>
 
                 {/* Editor de Texto Libre - Ocupa todo el espacio */}
-                <div style={{
-                    flex: 1,
-                    overflowY: 'auto',
-                    background: 'white',
-                }}>
-                    <div style={{
-                        width: '100%',
-                        height: '100%',
-                        background: 'white',
-                        minHeight: 'calc(100vh - 80px)',
-                        padding: '60px',
-                    }}>
+                <div className="editor-main-area">
+                    <div className="rich-text-wrapper">
                         <RichTextEditor
                             value={contenidoHtml}
                             onChange={setContenidoHtml}

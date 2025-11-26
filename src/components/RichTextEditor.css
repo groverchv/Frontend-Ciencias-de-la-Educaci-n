@@ -262,3 +262,63 @@
     margin-left: auto;
     margin-right: auto;
 }
+
+/* Estilos para el input de tamaño de fuente */
+.font-size-input {
+    width: 45px;
+    padding: 2px 4px;
+    font-size: 13px;
+    color: #444;
+    border: 1px solid #d9d9d9;
+    border-radius: 2px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.font-size-input:hover {
+    border-color: #40a9ff;
+}
+
+.font-size-input:focus {
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Ocultar flechas del input number en Chrome, Safari, Edge */
+.font-size-input::-webkit-outer-spin-button,
+.font-size-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Ocultar flechas del input number en Firefox */
+.font-size-input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* Responsive Toolbar */
+@media (max-width: 768px) {
+    .rich-text-editor-wrapper .ql-toolbar {
+        margin: -20px -20px 16px -20px;
+        padding: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .rich-text-editor-wrapper .ql-formats {
+        margin-right: 4px !important;
+        margin-bottom: 4px;
+    }
+
+    .custom-font-picker {
+        display: none !important;
+        /* Ocultar selector de fuente complejo en móvil para ahorrar espacio */
+    }
+
+    .font-size-input {
+        width: 36px;
+    }
+}
