@@ -40,9 +40,12 @@ export default function RichTextEditorFull({
     onChange,
     placeholder = "Escribe aquí...",
     readOnly = false,
-    toolbar = 'full'
+    toolbar = 'full',
+    externalRef // Nueva prop para recibir ref externo
 }) {
-    const quillRef = useRef(null);
+    // Usar el ref externo si se proporciona, sino crear uno interno
+    const internalRef = useRef(null);
+    const quillRef = externalRef || internalRef;
 
     const decreaseFontSize = () => {
         const quill = quillRef.current?.getEditor();
@@ -719,6 +722,17 @@ export default function RichTextEditorFull({
         });
 
     }, []);
+
+    // Efecto para limpiar el editor cuando el valor es vacío (para el botón Limpiar Todo)
+    useEffect(() => {
+        if (quillRef.current && (value === '' || value === '<p><br></p>')) {
+            const editor = quillRef.current.getEditor();
+            // Solo limpiar si hay contenido real (evitar bucles)
+            if (editor.getLength() > 1) {
+                editor.setContents([]);
+            }
+        }
+    }, [value]);
 
     return (
         <div className="rich-text-editor-wrapper">

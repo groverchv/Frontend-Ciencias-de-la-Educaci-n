@@ -1,15 +1,21 @@
 // src/pages/Dashboard/Contenido/ContentEditor.jsx
-import React, { useState, useEffect } from "react";
-import { Button, Space, Typography, message } from "antd";
+import React, { useState, useEffect, useRef } from "react";
+import { Button, Space, Typography, message, Modal } from "antd";
 import {
     SaveOutlined,
     FullscreenOutlined,
-    ArrowLeftOutlined
+    ArrowLeftOutlined,
+    UploadOutlined,
+    DownloadOutlined,
+    ClearOutlined,
+    ExclamationCircleOutlined
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import { PresentationMode } from "./PresentationMode";
+
 import ContenidoService from "../../../services/ContenidoService";
 import RichTextEditor from "../../../components/RichTextEditorFull";
+import { useImportarWord, useExportarWord } from "./Funcionalidades";
 import "./ContentEditor.css";
 
 const { Title, Text } = Typography;
@@ -17,6 +23,8 @@ const { Title, Text } = Typography;
 export default function ContentEditor() {
     const { contenidoId } = useParams();
     const navigate = useNavigate();
+    const quillRef = useRef(null);
+    const [modal, contextHolder] = Modal.useModal();
 
     // Estado del contenido
     const [contenido, setContenido] = useState(null);
@@ -26,6 +34,10 @@ export default function ContentEditor() {
     const [contenidoHtml, setContenidoHtml] = useState('');
     const [saving, setSaving] = useState(false);
     const [isPresentationMode, setIsPresentationMode] = useState(false);
+
+    // Hooks de funcionalidades Word
+    const { importar: importFromWord } = useImportarWord(quillRef, setContenidoHtml);
+    const { exportar: exportToWord } = useExportarWord(quillRef);
 
     // Cargar contenido al montar
     useEffect(() => {
@@ -96,6 +108,41 @@ export default function ContentEditor() {
         navigate('/dashboard/contenido');
     };
 
+    // Limpiar todo el contenido con confirmación
+    const handleClearAll = () => {
+        console.log('🗑️ Botón Limpiar Todo clickeado');
+
+        modal.confirm({
+            title: '¿Estás seguro de que quieres limpiar todo el contenido?',
+            icon: <ExclamationCircleOutlined />,
+            content: 'Esta acción no se puede deshacer. Todo el contenido del editor será eliminado.',
+            okText: 'Sí, limpiar todo',
+            okType: 'danger',
+            cancelText: 'Cancelar',
+            onOk() {
+                console.log('✅ Usuario confirmó limpieza');
+                try {
+                    // 1. Limpiar directamente el editor Quill para feedback inmediato
+                    if (quillRef.current) {
+                        const editor = quillRef.current.getEditor();
+                        editor.setContents([]);
+                        console.log('✅ Editor Quill limpiado directamente');
+                    }
+
+                    // 2. Actualizar el estado
+                    setContenidoHtml('');
+                    message.success('Contenido limpiado correctamente');
+                } catch (error) {
+                    console.error('❌ Error al limpiar:', error);
+                    message.error('Error al limpiar el contenido');
+                }
+            },
+            onCancel() {
+                console.log('❌ Limpieza cancelada por el usuario');
+            },
+        });
+    };
+
     if (loading) {
         return (
             <div style={{ textAlign: 'center', padding: '100px 0' }}>
@@ -115,6 +162,7 @@ export default function ContentEditor() {
 
     return (
         <>
+            {contextHolder}
             <div className="content-editor-wrapper">
                 {/* Header */}
                 <div className="editor-header">
@@ -134,6 +182,30 @@ export default function ContentEditor() {
                             </div>
                         </div>
                         <Space className="editor-actions">
+                            <Button
+                                icon={<UploadOutlined />}
+                                onClick={importFromWord}
+                                title="Importar desde Word (.docx)"
+                            >
+                                Importar Word
+                            </Button>
+                            <Button
+                                icon={<DownloadOutlined />}
+                                onClick={exportToWord}
+                                disabled={!contenidoHtml || contenidoHtml.trim() === ''}
+                                title="Exportar a Word (.docx)"
+                            >
+                                Exportar Word
+                            </Button>
+                            <Button
+                                icon={<ClearOutlined />}
+                                onClick={handleClearAll}
+                                disabled={!contenidoHtml || contenidoHtml.trim() === ''}
+                                danger
+                                title="Limpiar todo el contenido"
+                            >
+                                Limpiar Todo
+                            </Button>
                             <Button
                                 icon={<FullscreenOutlined />}
                                 onClick={() => setIsPresentationMode(true)}
@@ -163,6 +235,7 @@ export default function ContentEditor() {
                 <div className="editor-main-area">
                     <div className="rich-text-wrapper">
                         <RichTextEditor
+                            externalRef={quillRef}
                             value={contenidoHtml}
                             onChange={setContenidoHtml}
                             placeholder="Comienza a escribir tu contenido aquí... Puedes usar todas las herramientas de formato como en Microsoft Word."

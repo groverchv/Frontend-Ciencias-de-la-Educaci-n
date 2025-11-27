@@ -27,7 +27,7 @@
 .rich-text-editor-wrapper .ql-container {
     border: none;
     border-radius: 0;
-    font-family: -apple-system, BlinkMac SystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
     height: auto !important;
 }
@@ -43,13 +43,118 @@
     font-style: italic;
 }
 
+/* ===== ESTILOS PARA CONTENIDO IMPORTADO DE WORD ===== */
+
+/* Alineaciones importadas */
+.rich-text-editor-wrapper .ql-editor .align-left {
+    text-align: left !important;
+}
+
+.rich-text-editor-wrapper .ql-editor .align-center {
+    text-align: center !important;
+}
+
+.rich-text-editor-wrapper .ql-editor .align-right {
+    text-align: right !important;
+}
+
+.rich-text-editor-wrapper .ql-editor .align-justify {
+    text-align: justify !important;
+}
+
+/* Indentación importada (múltiples niveles) */
+.rich-text-editor-wrapper .ql-editor .indent-1,
+.rich-text-editor-wrapper .ql-editor [class*="indent-"] {
+    margin-left: 2em !important;
+}
+
+.rich-text-editor-wrapper .ql-editor .indent-2 {
+    margin-left: 4em !important;
+}
+
+.rich-text-editor-wrapper .ql-editor .indent-3 {
+    margin-left: 6em !important;
+}
+
+.rich-text-editor-wrapper .ql-editor .indent-4 {
+    margin-left: 8em !important;
+}
+
+.rich-text-editor-wrapper .ql-editor .indent-5 {
+    margin-left: 10em !important;
+}
+
+/* Estilos especiales de párrafo importados */
+.rich-text-editor-wrapper .ql-editor h1.title {
+    font-size: 2.5em;
+    font-weight: bold;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.rich-text-editor-wrapper .ql-editor h2.subtitle {
+    font-size: 1.8em;
+    font-weight: normal;
+    color: #666;
+    margin-top: 0.3em;
+    margin-bottom: 0.3em;
+}
+
+.rich-text-editor-wrapper .ql-editor blockquote {
+    border-left: 4px solid #ccc;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 16px;
+    color: #666;
+    font-style: italic;
+}
+
+.rich-text-editor-wrapper .ql-editor blockquote.intense {
+    border-left-color: #1890ff;
+    background-color: #f0f7ff;
+    padding: 12px 16px;
+    border-radius: 4px;
+}
+
+.rich-text-editor-wrapper .ql-editor .list-paragraph {
+    margin-left: 2em;
+}
+
+/* Soporte para imágenes con dimensiones preservadas */
+.rich-text-editor-wrapper .ql-editor img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 10px auto;
+}
+
+.rich-text-editor-wrapper .ql-editor img[style*="width"] {
+    /* Respetar el width inline si existe */
+    max-width: none;
+}
+
+.rich-text-editor-wrapper .ql-editor img[style*="float: left"],
+.rich-text-editor-wrapper .ql-editor img.align-left {
+    float: left;
+    margin-right: 15px;
+    margin-bottom: 10px;
+}
+
+.rich-text-editor-wrapper .ql-editor img[style*="float: right"],
+.rich-text-editor-wrapper .ql-editor img.align-right {
+    float: right;
+    margin-left: 15px;
+    margin-bottom: 10px;
+}
+
 /* Personalización de botones del toolbar */
 .rich-text-editor-wrapper .ql-toolbar button {
     width: 28px;
     height: 28px;
 }
 
-.rich-text-editor-wrapper .ql-toolbar button:hover {
+.rich-text-editor-wrapper .ql-toolbar button:hover,
+.rich-text-editor-wrapper .ql-toolbar button:focus {
     color: #1890ff;
 }
 
@@ -58,279 +163,69 @@
 }
 
 .rich-text-editor-wrapper .ql-toolbar .ql-stroke {
-    stroke: #595959;
-}
-
-.rich-text-editor-wrapper .ql-toolbar button:hover .ql-stroke {
-    stroke: #1890ff;
-}
-
-.rich-text-editor-wrapper .ql-toolbar button.ql-active .ql-stroke {
-    stroke: #1890ff;
+    stroke: currentColor;
 }
 
 .rich-text-editor-wrapper .ql-toolbar .ql-fill {
-    fill: #595959;
+    fill: currentColor;
 }
 
-.rich-text-editor-wrapper .ql-toolbar button:hover .ql-fill {
-    fill: #1890ff;
+/* Estilos de código */
+.rich-text-editor-wrapper .ql-editor pre {
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    padding: 12px;
+    margin: 12px 0;
+    overflow-x: auto;
 }
 
-.rich-text-editor-wrapper .ql-toolbar button.ql-active .ql-fill {
-    fill: #1890ff;
+.rich-text-editor-wrapper .ql-editor code {
+    background-color: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
 }
 
-/* Colores personalizados en el picker */
-.rich-text-editor-wrapper .ql-snow .ql-picker.ql-expanded .ql-picker-label {
-    border-color: #1890ff;
-}
-
-/* Estilos para tablas en el editor */
-.rich-text-editor-wrapper .ql-editor table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 8px 0;
-}
-
-.rich-text-editor-wrapper .ql-editor table td,
-.rich-text-editor-wrapper .ql-editor table th {
-    border: 1px solid #ddd;
-    padding: 8px;
-}
-
-.rich-text-editor-wrapper .ql-editor table th {
-    background-color: #f0f0f0;
-    font-weight: bold;
-}
-
-/* Mejoras para imágenes */
-.rich-text-editor-wrapper .ql-editor img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    margin: 8px auto;
-    cursor: pointer;
-}
-
-.rich-text-editor-wrapper .ql-editor img.selected {
-    outline: 2px solid #1890ff;
-}
-
-/* Alineaciones de imagen estilo Word */
-.rich-text-editor-wrapper .ql-editor img.ql-align-left,
-.rich-text-editor-wrapper .ql-editor img[style*="float: left"],
-.rich-text-editor-wrapper .ql-editor img[style*="float:left"] {
-    float: left;
-    margin: 8px 16px 8px 0;
-    display: inline;
-}
-
-.rich-text-editor-wrapper .ql-editor img.ql-align-right,
-.rich-text-editor-wrapper .ql-editor img[style*="float: right"],
-.rich-text-editor-wrapper .ql-editor img[style*="float:right"] {
-    float: right;
-    margin: 8px 0 8px 16px;
-    display: inline;
-}
-
-.rich-text-editor-wrapper .ql-editor img.ql-align-center,
-.rich-text-editor-wrapper .ql-editor img[style*="display: block; margin"],
-.rich-text-editor-wrapper .ql-editor img[style*="display:block;margin"] {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    float: none;
-}
-
-.rich-text-editor-wrapper .ql-editor img.full-width {
-    width: 100%;
-    max-width: 100%;
-    display: block;
-    margin: 16px 0;
-}
-
-/* Clear floats después de imágenes */
-.rich-text-editor-wrapper .ql-editor p:after {
-    content: "";
-    display: table;
-    clear: both;
-}
-
-/* Estilos para listas */
+/* Listas */
 .rich-text-editor-wrapper .ql-editor ul,
 .rich-text-editor-wrapper .ql-editor ol {
     padding-left: 1.5em;
 }
 
-/* Code blocks */
-.rich-text-editor-wrapper .ql-editor pre.ql-syntax {
-    background-color: #f5f5f5;
-    color: #333;
-    overflow-x: auto;
-    padding: 12px;
-    border-radius: 4px;
-    border: 1px solid #e8e8e8;
+.rich-text-editor-wrapper .ql-editor li {
+    margin-bottom: 0.3em;
 }
 
-/* Blockquotes */
-.rich-text-editor-wrapper .ql-editor blockquote {
-    border-left: 4px solid #1890ff;
-    padding-left: 16px;
-    margin-left: 0;
-    margin-right: 0;
-    color: #595959;
+/* Enlaces */
+.rich-text-editor-wrapper .ql-editor a {
+    color: #1890ff;
+    text-decoration: none;
 }
 
-/* Estilos para el módulo de redimensionamiento de imágenes */
-.image-resize-handle {
+.rich-text-editor-wrapper .ql-editor a:hover {
+    text-decoration: underline;
+}
+
+/* ===== IMAGEN RESIZE MODULE ===== */
+.rich-text-editor-wrapper .ql-editor img {
+    cursor: pointer;
+}
+
+.rich-text-editor-wrapper .image-resize-handle {
     position: absolute;
     width: 8px;
     height: 8px;
-    background: #1890ff;
+    background-color: #1890ff;
     border: 1px solid white;
     border-radius: 50%;
     cursor: nwse-resize;
-    z-index: 100;
-}
-
-.image-resize-handle-nw {
-    top: -4px;
-    left: -4px;
-    cursor: nwse-resize;
-}
-
-.image-resize-handle-ne {
-    top: -4px;
-    right: -4px;
-    cursor: nesw-resize;
-}
-
-.image-resize-handle-sw {
-    bottom: -4px;
-    left: -4px;
-    cursor: nesw-resize;
-}
-
-.image-resize-handle-se {
-    bottom: -4px;
-    right: -4px;
-    cursor: nwse-resize;
-}
-
-/* Toolbar de imagen */
-.ql-image-toolbar {
-    position: absolute;
-    background: white;
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    padding: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    z-index: 101;
-}
-
-.ql-image-toolbar button {
-    background: none;
-    border: none;
-    padding: 4px 8px;
-    cursor: pointer;
-    border-radius: 2px;
-}
-
-.ql-image-toolbar button:hover {
-    background: #f0f0f0;
-}
-
-/* Aplicar los mismos estilos de alineación en la vista pública (ContenidoDinamico) */
-.rich-content img[style*="float: left"],
-.rich-content img[style*="float:left"] {
-    float: left;
-    margin: 8px 16px 8px 0;
-    display: inline;
-}
-
-.rich-content img[style*="float: right"],
-.rich-content img[style*="float:right"] {
-    float: right;
-    margin: 8px 0 8px 16px;
-    display: inline;
-}
-
-.rich-content img[style*="display: block"],
-.rich-content img[style*="display:block"] {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* Estilos para el input de tamaño de fuente */
-.font-size-input {
-    width: 45px;
-    padding: 2px 4px;
-    font-size: 13px;
-    color: #444;
-    border: 1px solid #d9d9d9;
-    border-radius: 2px;
-    text-align: center;
-    outline: none;
-    transition: border-color 0.2s;
-}
-
-.font-size-input:hover {
-    border-color: #40a9ff;
-}
-
-.font-size-input:focus {
-    border-color: #1890ff;
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-}
-
-/* Ocultar flechas del input number en Chrome, Safari, Edge */
-.font-size-input::-webkit-outer-spin-button,
-.font-size-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-/* Ocultar flechas del input number en Firefox */
-.font-size-input[type=number] {
-    -moz-appearance: textfield;
-    appearance: textfield;
-}
-
-/* Responsive Toolbar */
-@media (max-width: 768px) {
-    .rich-text-editor-wrapper .ql-toolbar {
-        margin: -20px -20px 16px -20px;
-        padding: 8px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-    }
-
-    .rich-text-editor-wrapper .ql-formats {
-        margin-right: 4px !important;
-        margin-bottom: 4px;
-    }
-
-    .custom-font-picker {
-        display: none !important;
-        /* Ocultar selector de fuente complejo en móvil para ahorrar espacio */
-    }
-
-    .font-size-input {
-        width: 36px;
-    }
 }
 
 /* ===== BETTER TABLE STYLES ===== */
-
-/* Estilos mejorados para tablas con better-table */
 .rich-text-editor-wrapper .ql-editor table.quill-better-table {
     border-collapse: collapse;
     width: 100%;
     margin: 16px 0;
-    table-layout: auto;
 }
 
 .rich-text-editor-wrapper .ql-editor table.quill-better-table td,
@@ -342,20 +237,21 @@
     transition: background-color 0.2s;
 }
 
-/* Hover effect en celdas */
-.rich-text-editor-wrapper .ql-editor table.quill-better-table td:hover,
-.rich-text-editor-wrapper .ql-editor table.quill-better-table th:hover {
-    background-color: #f5f5f5;
+.rich-text-editor-wrapper .ql-editor table.quill-better-table th {
+    background-color: #fafafa;
+    font-weight: 600;
 }
 
-/* Celda seleccionada */
-.rich-text-editor-wrapper .ql-editor table.quill-better-table .qlbt-cell-selected {
-    background-color: #e6f7ff !important;
+.rich-text-editor-wrapper .ql-editor table.quill-better-table td:hover {
+    background-color: #f5f9ff;
+}
+
+.rich-text-editor-wrapper .ql-editor table.quill-better-table td.ql-cell-focused {
     outline: 2px solid #1890ff;
-    outline-offset: -2px;
+    outline-offset: -1px;
 }
 
-/* Menú de operaciones de tabla */
+/* Better Table Operation Menu */
 .qlbt-operation-menu {
     background: white;
     border: 1px solid #d9d9d9;
@@ -365,63 +261,56 @@
     z-index: 1000;
 }
 
-.qlbt-operation-menu-item {
+.qlbt-operation-menu .qlbt-operation-menu-item {
     padding: 8px 16px;
     cursor: pointer;
-    font-size: 13px;
-    color: #333;
     transition: background-color 0.2s;
+    font-size: 13px;
 }
 
-.qlbt-operation-menu-item:hover {
-    background-color: #f0f0f0;
+.qlbt-operation-menu .qlbt-operation-menu-item:hover {
+    background-color: #f0f7ff;
 }
 
-.qlbt-operation-menu-dividing {
-    height: 1px;
-    background: #e8e8e8;
-    margin: 4px 0;
-}
-
-/* Color picker en el menú */
-.qlbt-operation-color-picker {
+.qlbt-operation-menu-color-picker {
+    display: flex;
+    gap: 4px;
     padding: 8px;
+    flex-wrap: wrap;
+    max-width: 200px;
 }
 
-.qlbt-operation-color-picker .color-label {
-    font-size: 12px;
-    color: #666;
-    margin-bottom: 4px;
-}
-
-.qlbt-operation-color-picker .qlbt-color-item {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    margin: 2px;
-    border: 1px solid #d9d9d9;
+.qlbt-operation-menu-color-picker .qlbt-operation-color-picker-item {
+    width: 24px;
+    height: 24px;
     border-radius: 2px;
     cursor: pointer;
-    transition: transform 0.2s;
+    border: 1px solid #ddd;
+    transition: transform 0.1s;
 }
 
-.qlbt-operation-color-picker .qlbt-color-item:hover {
-    transform: scale(1.2);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.qlbt-operation-menu-color-picker .qlbt-operation-color-picker-item:hover {
+    transform: scale(1.1);
+    border-color: #1890ff;
 }
 
-/* Indicadores de columna/fila para drag */
+/* Table Col/Row Tools */
 .qlbt-col-tool,
 .qlbt-row-tool {
-    background: #f0f0f0;
-    border: 1px solid #d9d9d9;
-    opacity: 0;
-    transition: opacity 0.2s;
+    position: absolute;
+    z-index: 100;
 }
 
-table.quill-better-table:hover .qlbt-col-tool,
-table.quill-better-table:hover .qlbt-row-tool {
-    opacity: 1;
+.qlbt-col-tool {
+    top: -12px;
+    height: 12px;
+    cursor: col-resize;
+}
+
+.qlbt-row-tool {
+    left: -12px;
+    width: 12px;
+    cursor: row-resize;
 }
 
 .qlbt-col-tool:hover,
@@ -430,21 +319,98 @@ table.quill-better-table:hover .qlbt-row-tool {
     cursor: grab;
 }
 
-.qlbt-col-tool.dragging,
-.qlbt-row-tool.dragging {
+.qlbt-col-tool:active,
+.qlbt-row-tool:active {
     cursor: grabbing;
-    opacity: 0.5;
 }
 
-/* Estilo para las líneas guía durante el drag */
-.qlbt-drag-line {
-    background: #1890ff;
+/* Table Selection */
+.qlbt-selection-line {
     position: absolute;
-    z-index: 999;
+    background: #1890ff;
+    z-index: 101;
 }
 
-/* Responsivo para tablas */
-@media (max-width: 768px) {
+.qlbt-selection-line.qlbt-selection-line-horizontal {
+    height: 2px;
+}
+
+.qlbt-selection-line.qlbt-selection-line-vertical {
+    width: 2px;
+}
+
+/* ===== CUSTOM CONTROLS ===== */
+.custom-toolbar-btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-toolbar-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.custom-toolbar-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.custom-size-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 4px;
+}
+
+.font-size-input {
+    width: 45px;
+    padding: 4px;
+    border: 1px solid #d9d9d9;
+    border-radius: 3px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.custom-table-menu {
+    position: absolute;
+    background: white;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    display: none;
+}
+
+.custom-search-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid #d9d9d9;
+    border-radius: 3px;
+    padding: 2px 6px;
+    background: white;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media screen and (max-width: 768px) {
+    .rich-text-editor-wrapper .ql-toolbar {
+        flex-wrap: wrap;
+        padding: 8px 12px;
+        margin: -20px -20px 16px -20px;
+    }
+
+    .rich-text-editor-wrapper .ql-editor {
+        padding: 12px;
+        font-size: 16px;
+    }
+
     .rich-text-editor-wrapper .ql-editor table.quill-better-table {
         display: block;
         overflow-x: auto;

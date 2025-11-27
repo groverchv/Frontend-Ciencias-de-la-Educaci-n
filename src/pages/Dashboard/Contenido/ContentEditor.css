@@ -93,6 +93,24 @@
     }
 
     .editor-actions button {
-        flex: 1;
+        flex: 1 1 auto;
+        min-width: 100px;
+    }
+
+    /* Mostrar solo iconos en pantallas muy pequeñas */
+    .editor-actions button span:not(.anticon) {
+        display: none;
+    }
+}
+
+/* Estilos adicionales para mejor responsive */
+@media (max-width: 1024px) {
+    .editor-actions {
+        gap: 4px;
+    }
+
+    .editor-actions button {
+        font-size: 13px;
+        padding: 4px 12px;
     }
 }
