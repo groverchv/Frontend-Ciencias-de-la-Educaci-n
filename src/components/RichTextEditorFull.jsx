@@ -2,12 +2,19 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import ReactQuill, { Quill } from 'react-quill-new';
 import ImageResize from 'quill-image-resize-module-react';
+import QuillBetterTable from 'quill-better-table';
 import 'react-quill-new/dist/quill.snow.css';
+import 'quill-better-table/dist/quill-better-table.css';
 import './RichTextEditor.css';
 import './QuillFonts.css';
 
 // Registrar módulo de redimensionamiento de imágenes
 Quill.register('modules/imageResize', ImageResize);
+
+// Registrar módulo de tabla mejorado
+Quill.register({
+    'modules/better-table': QuillBetterTable
+}, true);
 
 // Configurar fuentes personalizadas - SOLO modificar whitelist, NO re-registrar
 const FontAttributor = Quill.import('attributors/style/font');
@@ -108,7 +115,46 @@ export default function RichTextEditorFull({
 
     const modules = useMemo(() => ({
         toolbar: { container: toolbarConfig, handlers: { image: imageHandler } },
-        table: true, // Habilitar módulo de tabla
+        'better-table': {
+            operationMenu: {
+                items: {
+                    unmergeCells: {
+                        text: 'Desunir celdas'
+                    },
+                    insertColumnLeft: {
+                        text: 'Insertar columna a la izquierda'
+                    },
+                    insertColumnRight: {
+                        text: 'Insertar columna a la derecha'
+                    },
+                    insertRowAbove: {
+                        text: 'Insertar fila arriba'
+                    },
+                    insertRowBelow: {
+                        text: 'Insertar fila abajo'
+                    },
+                    mergeCells: {
+                        text: 'Unir celdas'
+                    },
+                    deleteColumn: {
+                        text: 'Eliminar columna'
+                    },
+                    deleteRow: {
+                        text: 'Eliminar fila'
+                    },
+                    deleteTable: {
+                        text: 'Eliminar tabla'
+                    }
+                },
+                color: {
+                    colors: ['#ffffff', '#ffc0cb', '#ffeb3b', '#4caf50', '#2196f3', '#9c27b0', '#f44336', '#ff9800'],
+                    text: 'Color de fondo'
+                }
+            }
+        },
+        keyboard: {
+            bindings: QuillBetterTable.keyboardBindings
+        },
         imageResize: {
             parchment: Quill.import('parchment'),
             modules: ['Resize', 'DisplaySize'],
@@ -128,7 +174,7 @@ export default function RichTextEditorFull({
         if (!quillRef.current) return;
         console.log('Quill Version:', Quill.version);
         const editor = quillRef.current.getEditor();
-        console.log('Table Module:', editor.getModule('table'));
+        console.log('Better Table Module:', editor.getModule('better-table'));
         const toolbar = editor.getModule('toolbar').container;
 
         // Función helper para crear botones con tooltip
@@ -251,72 +297,57 @@ export default function RichTextEditorFull({
         searchContainer.appendChild(searchCount);
         searchContainer.appendChild(searchBtn);
 
-        // Botón de Mayúsculas/Minúsculas con Menú
-        const caseContainer = document.createElement('span');
-        caseContainer.className = 'ql-formats custom-case-container';
-        caseContainer.style.cssText = 'position: relative; display: inline-block;';
+        // Botón de Mayúsculas/Minúsculas (cicla entre opciones)
+        let caseMode = 0; // 0: MAYÚSCULAS, 1: minúsculas, 2: Tipo Título
+        const caseModes = [
+            { name: 'MAYÚSCULAS', transform: text => text.toUpperCase() },
+            { name: 'minúsculas', transform: text => text.toLowerCase() },
+            { name: 'Tipo Título', transform: text => text.toLowerCase().replace(/(?:^|\s)\S/g, a => a.toUpperCase()) }
+        ];
 
         const caseBtn = document.createElement('button');
         caseBtn.className = 'custom-toolbar-btn';
         caseBtn.innerHTML = '<svg viewBox="0 0 18 18"><text x="2" y="13" font-family="serif" font-size="13" font-weight="bold">Aa</text></svg>';
-        caseBtn.title = 'Cambiar mayúsculas/minúsculas';
+        caseBtn.title = 'Cambiar mayúsculas/minúsculas (Aa)';
+        caseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const range = editor.getSelection();
+            if (range && range.length > 0) {
+                const contents = editor.getContents(range.index, range.length);
+                const newOps = contents.ops.map(op => {
+                    if (typeof op.insert === 'string') {
+                        return { ...op, insert: caseModes[caseMode].transform(op.insert) };
+                    }
+                    return op;
+                });
 
-        const caseMenu = document.createElement('div');
-        caseMenu.className = 'custom-case-menu';
-        caseMenu.style.cssText = 'display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 1000; min-width: 120px; padding: 4px 0;';
+                const Delta = Quill.import('delta');
+                const update = new Delta().retain(range.index).delete(range.length);
+                newOps.forEach(op => update.push(op));
+                editor.updateContents(update, 'user');
+                editor.setSelection(range.index, range.length);
 
-        const createCaseOption = (label, transformFn) => {
-            const opt = document.createElement('div');
-            opt.textContent = label;
-            opt.style.cssText = 'padding: 8px 12px; cursor: pointer; font-size: 13px; &:hover { background: #f0f0f0; }';
-            opt.addEventListener('mouseenter', () => opt.style.background = '#f0f0f0');
-            opt.addEventListener('mouseleave', () => opt.style.background = 'white');
-            opt.addEventListener('click', () => {
-                const range = editor.getSelection();
-                if (range && range.length > 0) {
-                    const contents = editor.getContents(range.index, range.length);
-                    const newOps = contents.ops.map(op => {
-                        if (typeof op.insert === 'string') {
-                            return { ...op, insert: transformFn(op.insert) };
-                        }
-                        return op;
-                    });
-
-                    const Delta = Quill.import('delta');
-                    const update = new Delta().retain(range.index).delete(range.length);
-                    newOps.forEach(op => update.push(op));
-                    editor.updateContents(update, 'user');
-                    editor.setSelection(range.index, range.length);
-                }
-                caseMenu.style.display = 'none';
-            });
-            return opt;
-        };
-
-        caseMenu.appendChild(createCaseOption('MAYÚSCULAS', text => text.toUpperCase()));
-        caseMenu.appendChild(createCaseOption('minúsculas', text => text.toLowerCase()));
-        caseMenu.appendChild(createCaseOption('Tipo Título', text => text.toLowerCase().replace(/(?:^|\s)\S/g, a => a.toUpperCase())));
-
-        caseContainer.addEventListener('mouseenter', () => caseMenu.style.display = 'block');
-        caseContainer.addEventListener('mouseleave', () => caseMenu.style.display = 'none');
-
-        caseContainer.appendChild(caseBtn);
-        caseContainer.appendChild(caseMenu);
+                // Ciclar al siguiente modo
+                caseMode = (caseMode + 1) % caseModes.length;
+                caseBtn.title = `Cambiar a: ${caseModes[caseMode].name}`;
+            }
+        });
 
         const print = () => window.print();
 
-        // Agregar botones de utilidades al final
-        const lastGroup = document.createElement('span');
-        lastGroup.className = 'ql-formats';
+        // === ORGANIZAR TOOLBAR EN ORDEN ÓPTIMO ===
+        // GRUPO 1: Historial (Deshacer/Rehacer)
+        const historyGroup = document.createElement('span');
+        historyGroup.className = 'ql-formats';
+        historyGroup.appendChild(createBtn('ql-undo custom-toolbar-btn', 'Deshacer (Ctrl+Z)', '<svg viewBox="0 0 18 18"><polygon class="ql-fill ql-stroke" points="6 10 4 12 2 10 6 10"></polygon><path class="ql-stroke" d="M8.09,13.91A4.6,4.6,0,0,0,9,14,5,5,0,1,0,4,9"></path></svg>', undo));
+        historyGroup.appendChild(createBtn('ql-redo custom-toolbar-btn', 'Rehacer (Ctrl+Y)', '<svg viewBox="0 0 18 18"><polygon class="ql-fill ql-stroke" points="12 10 14 12 16 10 12 10"></polygon><path class="ql-stroke" d="M9.91,13.91A4.6,4.6,0,0,1,9,14a5,5,0,1,1,5-5"></path></svg>', redo));
 
-        // Insertar los nuevos controles
-        lastGroup.appendChild(searchContainer);
-        lastGroup.appendChild(caseContainer);
-
-        lastGroup.appendChild(createBtn('ql-undo custom-toolbar-btn', 'Deshacer', '<svg viewBox="0 0 18 18"><polygon class="ql-fill ql-stroke" points="6 10 4 12 2 10 6 10"></polygon><path class="ql-stroke" d="M8.09,13.91A4.6,4.6,0,0,0,9,14,5,5,0,1,0,4,9"></path></svg>', undo));
-        lastGroup.appendChild(createBtn('ql-redo custom-toolbar-btn', 'Rehacer', '<svg viewBox="0 0 18 18"><polygon class="ql-fill ql-stroke" points="12 10 14 12 16 10 12 10"></polygon><path class="ql-stroke" d="M9.91,13.91A4.6,4.6,0,0,1,9,14a5,5,0,1,1,5-5"></path></svg>', redo));
-        lastGroup.appendChild(createBtn('ql-print custom-toolbar-btn', 'Imprimir', '<svg viewBox="0 0 18 18"><path class="ql-fill" d="M14,4H4A2,2,0,0,0,2,6V10a2,2,0,0,0,2,2H4v2a2,2,0,0,0,2,2H12a2,2,0,0,0,2-2V12h0a2,2,0,0,0,2-2V6A2,2,0,0,0,14,4ZM12,14H6V10h6v4Z"></path><rect class="ql-fill" x="4" y="1" width="10" height="3"></rect></svg>', print));
-        toolbar.appendChild(lastGroup);
+        // GRUPO 2: Sistema de búsqueda y utilidades
+        const utilityGroup = document.createElement('span');
+        utilityGroup.className = 'ql-formats';
+        utilityGroup.appendChild(searchContainer);
+        utilityGroup.appendChild(caseBtn);
+        utilityGroup.appendChild(createBtn('ql-print custom-toolbar-btn', 'Imprimir (Ctrl+P)', '<svg viewBox="0 0 18 18"><path class="ql-fill" d="M14,4H4A2,2,0,0,0,2,6V10a2,2,0,0,0,2,2H4v2a2,2,0,0,0,2,2H12a2,2,0,0,0,2-2V12h0a2,2,0,0,0,2-2V6A2,2,0,0,0,14,4ZM12,14H6V10h6v4Z"></path><rect class="ql-fill" x="4" y="1" width="10" height="3"></rect></svg>', print));
 
         // Controles de tamaño de fuente
         const sizeControls = document.createElement('span');
@@ -355,9 +386,12 @@ export default function RichTextEditorFull({
             if (e.key === 'Enter') { e.preventDefault(); sizeInput.blur(); }
         });
 
-        sizeControls.appendChild(createBtn('ql-size-decrease custom-toolbar-btn', 'Reducir tamaño de fuente', '<span style="font-size: 16px; font-weight: bold;">−</span>', decreaseFontSize));
+        // Agregar tooltip al input
+        sizeInput.title = 'Tamaño de fuente (6-200 px)';
+
+        sizeControls.appendChild(createBtn('ql-size-decrease custom-toolbar-btn', 'Reducir tamaño de fuente (−)', '<span style="font-size: 16px; font-weight: bold;">−</span>', decreaseFontSize));
         sizeControls.appendChild(sizeInput);
-        sizeControls.appendChild(createBtn('ql-size-increase custom-toolbar-btn', 'Aumentar tamaño de fuente', '<span style="font-size: 16px; font-weight: bold;">+</span>', increaseFontSize));
+        sizeControls.appendChild(createBtn('ql-size-increase custom-toolbar-btn', 'Aumentar tamaño de fuente (+)', '<span style="font-size: 16px; font-weight: bold;">+</span>', increaseFontSize));
 
         // Botón de Tabla con Grid Selector
         // Botón de Tabla
@@ -368,7 +402,7 @@ export default function RichTextEditorFull({
         const tableBtn = document.createElement('button');
         tableBtn.className = 'custom-toolbar-btn';
         tableBtn.innerHTML = '<svg viewBox="0 0 18 18"><rect class="ql-stroke" height="12" width="12" x="3" y="3"></rect><line class="ql-stroke" x1="9" x2="9" y1="3" y2="15"></line><line class="ql-stroke" x1="3" x2="15" y1="9" y2="9"></line></svg>';
-        tableBtn.title = 'Insertar tabla';
+        tableBtn.title = 'Insertar tabla (movible y editable)';
 
         const tableMenu = document.createElement('div');
         tableMenu.className = 'custom-table-menu';
@@ -378,11 +412,11 @@ export default function RichTextEditorFull({
         const insertTable = (r, c) => {
             const quill = quillRef.current?.getEditor();
             if (quill) {
-                const tableModule = quill.getModule('table');
+                const tableModule = quill.getModule('better-table');
                 if (tableModule) {
                     tableModule.insertTable(r, c);
                 } else {
-                    console.warn('Módulo de tabla no encontrado');
+                    console.warn('Módulo de tabla mejorado no encontrado');
                 }
             }
             tableMenu.style.display = 'none';
@@ -465,6 +499,7 @@ export default function RichTextEditorFull({
         fontInput.type = 'text';
         fontInput.placeholder = 'Fuente...';
         fontInput.value = 'Sans Serif'; // Valor inicial
+        fontInput.title = 'Seleccionar tipo de fuente';
         fontInput.style.cssText = 'width: 120px; padding: 2px 4px; font-size: 13px; color: #444; border: 1px solid #d9d9d9; border-radius: 2px; outline: none; cursor: text;';
 
         const fontMenu = document.createElement('div');
@@ -567,16 +602,25 @@ export default function RichTextEditorFull({
         customFontPicker.appendChild(fontInput);
         customFontPicker.appendChild(fontMenu);
 
-        // Insertar controles al principio del toolbar
+        // === INSERTAR CONTROLES EN ORDEN ÓPTIMO ===
+        // Orden: Historial -> Tabla -> Fuente/Tamaño -> (Quill defaults) -> Utilidades
+
+        // Primero insertar al inicio
         if (toolbar.firstChild) {
+            // Insertar en orden inverso porque insertBefore agrega antes del firstChild
             toolbar.insertBefore(sizeControls, toolbar.firstChild);
-            toolbar.insertBefore(customFontPicker, sizeControls);
-            toolbar.insertBefore(tableContainer, customFontPicker);
+            toolbar.insertBefore(customFontPicker, toolbar.firstChild);
+            toolbar.insertBefore(tableContainer, toolbar.firstChild);
+            toolbar.insertBefore(historyGroup, toolbar.firstChild);
         } else {
+            toolbar.appendChild(historyGroup);
             toolbar.appendChild(tableContainer);
             toolbar.appendChild(customFontPicker);
             toolbar.appendChild(sizeControls);
         }
+
+        // Agregar utilidades al final
+        toolbar.appendChild(utilityGroup);
 
         // --- MENÚ CONTEXTUAL DE TABLA ---
         const tableToolbar = document.createElement('div');
@@ -611,7 +655,7 @@ export default function RichTextEditorFull({
 
         tableActions.forEach(item => {
             tableToolbar.appendChild(createTableBtn(item.icon, item.title, () => {
-                const tableModule = editor.getModule('table');
+                const tableModule = editor.getModule('better-table');
                 if (tableModule && tableModule[item.action]) {
                     tableModule[item.action]();
                 }
@@ -632,21 +676,23 @@ export default function RichTextEditorFull({
             const color = e.target.value;
             const range = editor.getSelection();
             if (range) {
-                // Aplicar color a las celdas seleccionadas
-                // Nota: Quill table module básico no siempre soporta cell-bg directamente sin configuración extra.
-                // Intentamos usar el formato 'table-cell-style' o similar si existe, o 'background' si se aplica al bloque.
-                // Para Quill 2.0, a veces se usa attributors.
-
-                // Enfoque manual para asegurar compatibilidad básica:
-                const tds = document.querySelectorAll('.ql-editor td[data-row][data-cell-selected], .ql-editor td');
-                // Esto es complejo de detectar exactamente sin el módulo better-table.
-                // Usaremos el formato estándar de Quill si es posible.
-                editor.format('table-cell', { background: color }); // Intento genérico
-
-                // Fallback: intentar aplicar estilo directo al nodo si tenemos acceso (limitado en Quill API puro)
+                // Enfoque directo: encontrar la celda activa y aplicar estilo
+                const [leaf] = editor.getLeaf(range.index);
+                if (leaf && leaf.parent) {
+                    // Buscar el nodo TD o TH ascendiendo en el DOM
+                    let domNode = leaf.domNode;
+                    while (domNode && domNode !== editor.root) {
+                        if (domNode.tagName === 'TD' || domNode.tagName === 'TH') {
+                            domNode.style.backgroundColor = color;
+                            // Forzar actualización si es necesario, aunque el estilo directo debería ser visible
+                            break;
+                        }
+                        domNode = domNode.parentNode;
+                    }
+                }
             }
         });
-        // tableToolbar.appendChild(colorInput); // Deshabilitado temporalmente hasta confirmar soporte de color de celda
+        tableToolbar.appendChild(colorInput);
 
         editor.container.appendChild(tableToolbar);
 

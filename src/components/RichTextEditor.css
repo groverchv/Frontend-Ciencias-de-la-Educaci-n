@@ -27,7 +27,7 @@
 .rich-text-editor-wrapper .ql-container {
     border: none;
     border-radius: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMac SystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
     height: auto !important;
 }
@@ -320,5 +320,140 @@
 
     .font-size-input {
         width: 36px;
+    }
+}
+
+/* ===== BETTER TABLE STYLES ===== */
+
+/* Estilos mejorados para tablas con better-table */
+.rich-text-editor-wrapper .ql-editor table.quill-better-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+    table-layout: auto;
+}
+
+.rich-text-editor-wrapper .ql-editor table.quill-better-table td,
+.rich-text-editor-wrapper .ql-editor table.quill-better-table th {
+    border: 1px solid #d9d9d9;
+    padding: 10px;
+    position: relative;
+    min-width: 80px;
+    transition: background-color 0.2s;
+}
+
+/* Hover effect en celdas */
+.rich-text-editor-wrapper .ql-editor table.quill-better-table td:hover,
+.rich-text-editor-wrapper .ql-editor table.quill-better-table th:hover {
+    background-color: #f5f5f5;
+}
+
+/* Celda seleccionada */
+.rich-text-editor-wrapper .ql-editor table.quill-better-table .qlbt-cell-selected {
+    background-color: #e6f7ff !important;
+    outline: 2px solid #1890ff;
+    outline-offset: -2px;
+}
+
+/* Menú de operaciones de tabla */
+.qlbt-operation-menu {
+    background: white;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 4px 0;
+    z-index: 1000;
+}
+
+.qlbt-operation-menu-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #333;
+    transition: background-color 0.2s;
+}
+
+.qlbt-operation-menu-item:hover {
+    background-color: #f0f0f0;
+}
+
+.qlbt-operation-menu-dividing {
+    height: 1px;
+    background: #e8e8e8;
+    margin: 4px 0;
+}
+
+/* Color picker en el menú */
+.qlbt-operation-color-picker {
+    padding: 8px;
+}
+
+.qlbt-operation-color-picker .color-label {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.qlbt-operation-color-picker .qlbt-color-item {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin: 2px;
+    border: 1px solid #d9d9d9;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.qlbt-operation-color-picker .qlbt-color-item:hover {
+    transform: scale(1.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Indicadores de columna/fila para drag */
+.qlbt-col-tool,
+.qlbt-row-tool {
+    background: #f0f0f0;
+    border: 1px solid #d9d9d9;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+table.quill-better-table:hover .qlbt-col-tool,
+table.quill-better-table:hover .qlbt-row-tool {
+    opacity: 1;
+}
+
+.qlbt-col-tool:hover,
+.qlbt-row-tool:hover {
+    background: #1890ff;
+    cursor: grab;
+}
+
+.qlbt-col-tool.dragging,
+.qlbt-row-tool.dragging {
+    cursor: grabbing;
+    opacity: 0.5;
+}
+
+/* Estilo para las líneas guía durante el drag */
+.qlbt-drag-line {
+    background: #1890ff;
+    position: absolute;
+    z-index: 999;
+}
+
+/* Responsivo para tablas */
+@media (max-width: 768px) {
+    .rich-text-editor-wrapper .ql-editor table.quill-better-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .rich-text-editor-wrapper .ql-editor table.quill-better-table td,
+    .rich-text-editor-wrapper .ql-editor table.quill-better-table th {
+        min-width: 100px;
+        padding: 8px;
     }
 }
