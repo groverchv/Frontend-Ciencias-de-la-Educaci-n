@@ -10,8 +10,6 @@ import GestionarMenu from "../pages/Dashboard/GestionarMenu";
 import GestionarSub_Menu from "../pages/Dashboard/GestionarSub_Menu";
 import GestionarContenido from "../pages/Dashboard/Contenido/GestionarContenido";
 import GestionarRol from "../pages/Dashboard/GestionarRol";
-import GestionarPermiso from "../pages/Dashboard/GestionarPermiso";
-import AdministrarBitacora from "../pages/Dashboard/AdministrarBitacora";
 import GestionarPresentacion from "../pages/Dashboard/GestionarPresentacion";
 import ContenidoDinamico from "../components/ContenidoDinamico";
 import ContentEditor from "../pages/Dashboard/Contenido/ContentEditor";
@@ -39,8 +37,6 @@ export default function AppRoutes() {
         <Route path="contenido" element={<GestionarContenido />} />
         <Route path="contenido/editar/:contenidoId" element={<ContentEditor />} />
         <Route path="roles" element={<GestionarRol />} />
-        <Route path="permisos" element={<GestionarPermiso />} />
-        <Route path="bitacora" element={<AdministrarBitacora />} />
         <Route path="presentacion" element={<GestionarPresentacion />} />
       </Route>
 

@@ -11,7 +11,7 @@ import {
     ExclamationCircleOutlined
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
-import { PresentationMode } from "./PresentationMode";
+// PresentationMode removed - was part of block system
 
 import ContenidoService from "../../../services/ContenidoService";
 import RichTextEditor from "../../../components/RichTextEditorFull";
@@ -33,7 +33,7 @@ export default function ContentEditor() {
     // Estado del contenido HTML
     const [contenidoHtml, setContenidoHtml] = useState('');
     const [saving, setSaving] = useState(false);
-    const [isPresentationMode, setIsPresentationMode] = useState(false);
+    // Presentation mode removed - was part of block system
 
     // Hooks de funcionalidades Word
     const { importar: importFromWord } = useImportarWord(quillRef, setContenidoHtml);
@@ -206,13 +206,7 @@ export default function ContentEditor() {
                             >
                                 Limpiar Todo
                             </Button>
-                            <Button
-                                icon={<FullscreenOutlined />}
-                                onClick={() => setIsPresentationMode(true)}
-                                disabled={!contenidoHtml || contenidoHtml.trim() === ''}
-                            >
-                                Vista Previa
-                            </Button>
+                            {/* Vista Previa removed - was part of block system */}
                             <Button
                                 onClick={handleSave}
                                 loading={saving}
@@ -246,13 +240,7 @@ export default function ContentEditor() {
                 </div>
             </div>
 
-            {/* Presentation Mode */}
-            {isPresentationMode && (
-                <PresentationMode
-                    contenidoHtml={contenidoHtml}
-                    onClose={() => setIsPresentationMode(false)}
-                />
-            )}
+            {/* Presentation Mode removed - was part of block system */}
         </>
     );
 }

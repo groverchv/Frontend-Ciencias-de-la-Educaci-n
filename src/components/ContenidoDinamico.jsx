@@ -5,9 +5,8 @@ import { Spin, Empty, Alert, Typography, Divider } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import DOMPurify from 'dompurify';
 import ContenidoService from "../services/ContenidoService";
-import BloqueService from "../services/BloqueService";
 import Sub_MenuService from "../services/Sub_MenuService";
-import { RendererTitulo, RendererSubTitulo, RendererTexto, RendererArchivo, RendererTabla } from "../pages/Dashboard/Contenido/BlockRenderers";
+// BlockRenderers and BloqueService removed - block system eliminated
 import 'react-quill-new/dist/quill.snow.css';
 import './RichTextEditor.css';
 import './QuillFonts.css';
@@ -59,8 +58,8 @@ export default function ContenidoDinamico() {
                 console.log("📄 Contenidos encontrados:", contenidosData);
                 console.log("📊 Total de contenidos:", contenidosData.length);
 
-                // 3. Para cada Contenido activo, cargar sus bloques Y el contenido completo
-                const contenidosConBloques = [];
+                // 3. Para cada Contenido activo, cargar su contenidoHtml
+                const contenidosConHtml = [];
                 for (const contenido of contenidosData) {
                     console.log(`\n🔎 Procesando contenido #${contenido.id}:`, contenido);
                     console.log(`   - Título: ${contenido.titulo}`);
@@ -76,23 +75,12 @@ export default function ContenidoDinamico() {
                                 console.log(`   - Preview del HTML:`, contenidoCompleto.contenidoHtml.substring(0, 100) + '...');
                             }
 
-                            const bloques = await BloqueService.getBlocksByContenido(contenido.id);
-                            console.log(`   - Bloques encontrados:`, bloques.length);
-
-                            const bloquesActivos = bloques
-                                .filter((b) => b.estado === true)
-                                .sort((a, b) => (a.orden || 0) - (b.orden || 0));
-                            console.log(`   - Bloques activos:`, bloquesActivos.length);
-
-                            // Agregar contenido si tiene contenidoHtml O bloques activos
-                            if (contenidoCompleto.contenidoHtml || bloquesActivos.length > 0) {
+                            // Agregar contenido si tiene contenidoHtml
+                            if (contenidoCompleto.contenidoHtml) {
                                 console.log(`   ✅ Contenido agregado a la lista`);
-                                contenidosConBloques.push({
-                                    ...contenidoCompleto,
-                                    bloques: bloquesActivos
-                                });
+                                contenidosConHtml.push(contenidoCompleto);
                             } else {
-                                console.log(`   ⚠️ Contenido omitido (sin HTML ni bloques activos)`);
+                                console.log(`   ⚠️ Contenido omitido (sin HTML)`);
                             }
                         } catch (err) {
                             console.error(`❌ Error cargando contenido ${contenido.id}:`, err);
@@ -103,10 +91,10 @@ export default function ContenidoDinamico() {
                 }
 
                 // Ordenar contenidos por orden
-                contenidosConBloques.sort((a, b) => (a.orden || 0) - (b.orden || 0));
-                console.log("\n✨ Contenidos finales a renderizar:", contenidosConBloques.length);
-                console.log("📦 Contenidos con datos:", contenidosConBloques);
-                setContenidos(contenidosConBloques);
+                contenidosConHtml.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+                console.log("\n✨ Contenidos finales a renderizar:", contenidosConHtml.length);
+                console.log("📦 Contenidos con datos:", contenidosConHtml);
+                setContenidos(contenidosConHtml);
 
             } catch (err) {
                 console.error("Error al cargar contenido:", err);
@@ -119,25 +107,7 @@ export default function ContenidoDinamico() {
         loadContenido();
     }, [ruta]);
 
-    // Renderizar cada tipo de bloque usando los renderers centralizados
-    const renderBloque = (bloque) => {
-        const { tipoBloque } = bloque;
-
-        switch (tipoBloque) {
-            case "titulo":
-                return <RendererTitulo block={bloque} />;
-            case "subtitulo":
-                return <RendererSubTitulo block={bloque} />;
-            case "texto":
-                return <RendererTexto block={bloque} />;
-            case "archivo":
-                return <RendererArchivo block={bloque} />;
-            case "tabla":
-                return <RendererTabla block={bloque} />;
-            default:
-                return null;
-        }
-    };
+    // Block rendering removed - block system eliminated
 
     if (loading) {
         return (
@@ -195,23 +165,16 @@ export default function ContenidoDinamico() {
         >
             {contenidos.map((contenido, idx) => (
                 <div key={contenido.id}>
-                    {/* Renderizar contenido HTML si existe, sino mostrar bloques (retrocompatibilidad) */}
-                    {contenido.contenidoHtml ? (
-                        <div
-                            className="rich-content"
-                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contenido.contenidoHtml) }}
-                            style={{
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                                lineHeight: 1.6,
-                                color: '#333'
-                            }}
-                        />
-                    ) : (
-                        /* Mostrar bloques del contenido (sistema antiguo) */
-                        contenido.bloques?.map((bloque) => (
-                            <div key={bloque.id}>{renderBloque(bloque)}</div>
-                        ))
-                    )}
+                    {/* Renderizar contenido HTML */}
+                    <div
+                        className="rich-content"
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contenido.contenidoHtml) }}
+                        style={{
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                            lineHeight: 1.6,
+                            color: '#333'
+                        }}
+                    />
 
                     {/* Separador entre contenidos (excepto el último) */}
                     {idx < contenidos.length - 1 && (
