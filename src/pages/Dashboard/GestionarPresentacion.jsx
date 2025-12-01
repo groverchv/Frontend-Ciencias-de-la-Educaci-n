@@ -19,8 +19,10 @@ import {
   PictureOutlined,
   LinkOutlined,
 } from "@ant-design/icons";
-import { ImagenesAPI } from "../../services/PresentacionService.js"; 
+import { ImagenesAPI } from "../../services/PresentacionService.js";
 import AuthService from "../../services/AuthService.js";
+import Filtador from "./Filtador";
+import Paginacion from "./Paginacion";
 
 const { Title } = Typography;
 
@@ -62,6 +64,11 @@ export default function GestionarPresentacion() {
   const [editingPresentacion, setEditingPresentacion] = useState(null);
   const [form] = Form.useForm();
 
+  // Estados para Paginación y Filtrado
+  const [searchText, setSearchText] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
   useEffect(() => {
     fetchPresentaciones();
   }, []);
@@ -78,6 +85,22 @@ export default function GestionarPresentacion() {
       setLoading(false);
     }
   };
+
+  // Lógica de Filtrado
+  const filteredPresentaciones = presentaciones.filter((item) => {
+    if (!searchText) return true;
+    const searchLower = searchText.toLowerCase();
+    return (
+      item.url?.toLowerCase().includes(searchLower) ||
+      item.id?.toString().includes(searchLower)
+    );
+  });
+
+  // Lógica de Paginación
+  const paginatedPresentaciones = filteredPresentaciones.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const handleOpenModal = (presentacion = null) => {
     setEditingPresentacion(presentacion);
@@ -247,11 +270,11 @@ export default function GestionarPresentacion() {
   return (
     <div className="admin-container">
       <Card>
-        <div className="admin-header" style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center", 
-          marginBottom: 16 
+        <div className="admin-header" style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16
         }}>
           <div className="admin-title-wrapper" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <PictureOutlined className="admin-header-icon" style={{ fontSize: 28 }} />
@@ -269,13 +292,29 @@ export default function GestionarPresentacion() {
           </Button>
         </div>
 
+        <Filtador
+          placeholder="Buscar por URL o ID..."
+          onSearch={setSearchText}
+          value={searchText}
+        />
+
         <Table
           columns={columns}
-          dataSource={presentaciones}
+          dataSource={paginatedPresentaciones}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: 10 }}
+          pagination={false}
           scroll={{ x: 900 }}
+        />
+
+        <Paginacion
+          current={currentPage}
+          total={filteredPresentaciones.length}
+          pageSize={pageSize}
+          onChange={(page, size) => {
+            setCurrentPage(page);
+            setPageSize(size);
+          }}
         />
       </Card>
 

@@ -1,8 +1,8 @@
 import React from "react";
 import { Layout } from "antd";
 import { Outlet } from "react-router-dom";
-import DashboardHeader from "../../components/DashboardHeader";
-import DashboardSidebar from "../../components/DashboardSidebar";
+import DashboardHeader from "../../components/Dashboard/DashboardHeader";
+import DashboardSidebar from "../../components/Dashboard/DashboardSidebar";
 
 // Importamos el CSS unificado
 import "./DashboardLayout.css";

@@ -28,7 +28,8 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-quill-new": "^3.6.0",
-    "react-router-dom": "^6.14.2"
+    "react-router-dom": "^6.14.2",
+    "recharts": "^3.5.1"
   },
   "dependenciesMeta": {
     "jspdf": {

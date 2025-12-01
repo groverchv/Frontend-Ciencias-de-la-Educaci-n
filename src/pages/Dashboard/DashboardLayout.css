@@ -2,13 +2,36 @@
    1. Layout Principal (Dashboard Shell)
    ========================================= */
 .dashboard-layout {
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+/* El Layout interno (Sider + Content) debe ocupar el espacio restante */
+.dashboard-layout>.ant-layout {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  /* Asegura que Sider y Content estén lado a lado */
+}
+
+/* Sidebar con scroll independiente */
+.dashboard-layout .ant-layout-sider {
+  overflow-y: auto;
+  height: 100%;
+  background: #fff;
+}
+
+/* Content con scroll independiente */
 .dashboard-content {
   padding: 24px;
-  background: #f0f2f5; /* Fondo gris claro estándar */
-  min-height: calc(100vh - 64px);
+  background: #f0f2f5;
+  height: 100%;
+  /* Ocupa el alto restante */
+  overflow-y: auto;
+  /* Scroll interno solo para el contenido */
 }
 
 /* =========================================
@@ -58,9 +81,9 @@
     gap: 16px;
     align-items: flex-start;
   }
-  
+
   /* En móvil, el botón ocupa todo el ancho */
   .admin-header .ant-btn {
-    width: 100%; 
+    width: 100%;
   }
 }

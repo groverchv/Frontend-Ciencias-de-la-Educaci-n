@@ -3,11 +3,13 @@ import { Layout, Menu } from "antd";
 import {
     DashboardOutlined,
     UserOutlined,
-    FileTextOutlined,
     CalendarOutlined,
     SettingOutlined,
     MenuOutlined,
-    SafetyOutlined
+    SafetyOutlined,
+    TeamOutlined,
+    AppstoreOutlined,
+    FileTextOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -24,39 +26,53 @@ export default function DashboardSidebar() {
             label: "Inicio",
         },
         {
-            key: "/dashboard/usuarios",
-            icon: <UserOutlined />,
-            label: "Gestionar Usuarios",
+            key: "usuarios",
+            icon: <TeamOutlined />,
+            label: "Gestión de Usuarios",
+            children: [
+                {
+                    key: "/dashboard/usuarios",
+                    icon: <UserOutlined />,
+                    label: "Gestionar Usuarios",
+                },
+                {
+                    key: "/dashboard/roles",
+                    icon: <SafetyOutlined />,
+                    label: "Gestionar Roles",
+                },
+                {
+                    key: "/dashboard/rol-usuario",
+                    icon: <TeamOutlined />,
+                    label: "Asignar Roles",
+                },
+            ]
         },
         {
-            key: "/dashboard/roles",
-            icon: <SafetyOutlined />,
-            label: "Gestionar Roles",
-        },
-        {
-            key: "/dashboard/menus",
-            icon: <MenuOutlined />,
-            label: "Gestionar Menús",
-        },
-        {
-            key: "/dashboard/sub_menus",
-            icon: <CalendarOutlined />,
-            label: "Gestionar Sub Menús",
-        },
-        {
-            key: "/dashboard/contenido",
-            icon: <CalendarOutlined />,
-            label: "Gestionar Contenido",
+            key: "contenido",
+            icon: <FileTextOutlined />,
+            label: "Gestión de Contenido",
+            children: [
+                {
+                    key: "/dashboard/menus",
+                    icon: <MenuOutlined />,
+                    label: "Gestionar Menús",
+                },
+                {
+                    key: "/dashboard/sub_menus",
+                    icon: <AppstoreOutlined />,
+                    label: "Gestionar Sub Menús",
+                },
+                {
+                    key: "/dashboard/contenido",
+                    icon: <FileTextOutlined />,
+                    label: "Gestionar Contenido",
+                },
+            ]
         },
         {
             key: "/dashboard/presentacion",
             icon: <SettingOutlined />,
             label: "Gestionar Presentación",
-        },
-        {
-            key: "/dashboard/configuracion",
-            icon: <SettingOutlined />,
-            label: "Configuración",
         },
     ];
 
@@ -76,6 +92,7 @@ export default function DashboardSidebar() {
             <Menu
                 mode="inline"
                 selectedKeys={[location.pathname]}
+                defaultOpenKeys={['usuarios', 'contenido']}
                 items={menuItems}
                 onClick={handleMenuClick}
                 style={{ height: "100%", borderRight: 0 }}

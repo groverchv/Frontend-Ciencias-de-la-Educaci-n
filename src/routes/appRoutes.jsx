@@ -4,15 +4,16 @@ import Home from "../pages/Home/Home";
 import Login from "../pages/Auth/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import DashboardHome from "../pages/Dashboard/DashboardHome";
-import GestionarUsuario from "../pages/Dashboard/GestionarUsuario";
+import GestionarUsuario from "../pages/Dashboard/PaqueteUsuario/GestionarUsuario";
+import GestionarRol from "../pages/Dashboard/PaqueteUsuario/GestionarRol";
+import GestionarRolUsuario from "../pages/Dashboard/PaqueteUsuario/GestionarRolUsuario";
 import PrivateRoute from "../components/PrivateRoute";
-import GestionarMenu from "../pages/Dashboard/GestionarMenu";
-import GestionarSub_Menu from "../pages/Dashboard/GestionarSub_Menu";
-import GestionarContenido from "../pages/Dashboard/Contenido/GestionarContenido";
-import GestionarRol from "../pages/Dashboard/GestionarRol";
+import GestionarMenu from "../pages/Dashboard/PaqueteContenido/GestionarMenu";
+import GestionarSub_Menu from "../pages/Dashboard/PaqueteContenido/GestionarSub_Menu";
+import GestionarContenido from "../pages/Dashboard/PaqueteContenido/Contenido/GestionarContenido";
+import ContentEditor from "../pages/Dashboard/PaqueteContenido/Contenido/ContentEditor";
 import GestionarPresentacion from "../pages/Dashboard/GestionarPresentacion";
-import ContenidoDinamico from "../components/ContenidoDinamico";
-import ContentEditor from "../pages/Dashboard/Contenido/ContentEditor";
+import ContenidoDinamico from "../components/Dashboard/ContenidoDinamico";
 
 
 export default function AppRoutes() {
@@ -37,6 +38,7 @@ export default function AppRoutes() {
         <Route path="contenido" element={<GestionarContenido />} />
         <Route path="contenido/editar/:contenidoId" element={<ContentEditor />} />
         <Route path="roles" element={<GestionarRol />} />
+        <Route path="rol-usuario" element={<GestionarRolUsuario />} />
         <Route path="presentacion" element={<GestionarPresentacion />} />
       </Route>
 
