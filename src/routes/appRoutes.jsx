@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Home from "../pages/Home/Home";
+
 import Login from "../pages/Auth/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import DashboardHome from "../pages/Dashboard/DashboardHome";
@@ -19,7 +19,7 @@ import ContenidoDinamico from "../components/Dashboard/ContenidoDinamico";
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<Navigate to="/inicio/bienvenido" replace />} />
 
       <Route path="/login" element={<Login />} />
 

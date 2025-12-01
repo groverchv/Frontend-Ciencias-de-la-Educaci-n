@@ -8,7 +8,8 @@ import {
     UploadOutlined,
     DownloadOutlined,
     ClearOutlined,
-    ExclamationCircleOutlined
+    ExclamationCircleOutlined,
+    CheckCircleOutlined
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 // PresentationMode removed - was part of block system
@@ -63,20 +64,20 @@ export default function ContentEditor() {
         loadContenido();
     }, [contenidoId]);
 
-    // Guardar y cerrar
-    const handleSaveAndClose = async () => {
+    // Guardar Interno - guarda sin publicar (estado = false)
+    const handleSaveInternal = async () => {
         if (!contenido) return;
 
         setSaving(true);
         try {
-            // Guardar el contenido HTML
             await ContenidoService.updateContenido(contenido.id, {
-                contenidoHtml: contenidoHtml
+                contenidoHtml: contenidoHtml,
+                estado: false // Mantener como borrador
             });
-            message.success("¡Contenido guardado exitosamente!");
+            message.success("¡Contenido guardado internamente como borrador!");
 
-            // Volver a la lista de contenidos
-            navigate('/dashboard/contenido');
+            // Actualizar el estado local
+            setContenido({ ...contenido, estado: false });
         } catch (error) {
             message.error("Error al guardar contenido");
             console.error(error);
@@ -85,22 +86,48 @@ export default function ContentEditor() {
         }
     };
 
-    // Solo guardar sin cerrar
-    const handleSave = async () => {
+    // Publicar - muestra confirmación y guarda con estado = true
+    const handlePublishWithConfirmation = () => {
         if (!contenido) return;
 
-        setSaving(true);
-        try {
-            await ContenidoService.updateContenido(contenido.id, {
-                contenidoHtml: contenidoHtml
-            });
-            message.success("¡Contenido guardado!");
-        } catch (error) {
-            message.error("Error al guardar contenido");
-            console.error(error);
-        } finally {
-            setSaving(false);
-        }
+        modal.confirm({
+            title: '¿Confirmar Publicación?',
+            icon: <ExclamationCircleOutlined />,
+            content: <div>
+                <p>¿Estás seguro de que deseas publicar este contenido?</p>
+                <p><strong>"{contenido.titulo}"</strong></p>
+                <p style={{ color: '#52c41a', marginTop: 12 }}>
+                    Al publicar, el contenido será visible para todos los usuarios que visiten la página pública.
+                </p>
+            </div>,
+            okText: 'Sí, publicar',
+            okType: 'primary',
+            okButtonProps: {
+                style: { background: '#52c41a', borderColor: '#52c41a' }
+            },
+            cancelText: 'Cancelar',
+            async onOk() {
+                setSaving(true);
+                try {
+                    await ContenidoService.updateContenido(contenido.id, {
+                        contenidoHtml: contenidoHtml,
+                        estado: true // Publicar
+                    });
+                    message.success("¡Contenido publicado exitosamente!");
+
+                    // Actualizar el estado local
+                    setContenido({ ...contenido, estado: true });
+                } catch (error) {
+                    message.error("Error al publicar contenido");
+                    console.error(error);
+                } finally {
+                    setSaving(false);
+                }
+            },
+            onCancel() {
+                console.log('Publicación cancelada por el usuario');
+            },
+        });
     };
 
     // Volver sin guardar
@@ -178,7 +205,7 @@ export default function ContentEditor() {
                                 <Title level={4} style={{ margin: 0 }}>
                                     {contenido.titulo || 'Sin título'}
                                 </Title>
-                                <Text type="secondary">ID: {contenido.id}</Text>
+                                <Text type="secondary">ID: {contenido.id} | Estado: {contenido.estado ? '🟢 Publicado' : '🟡 Borrador'}</Text>
                             </div>
                         </div>
                         <Space className="editor-actions">
@@ -208,18 +235,21 @@ export default function ContentEditor() {
                             </Button>
                             {/* Vista Previa removed - was part of block system */}
                             <Button
-                                onClick={handleSave}
+                                onClick={handleSaveInternal}
                                 loading={saving}
+                                icon={<SaveOutlined />}
+                                title="Guardar cambios sin publicar"
                             >
-                                Guardar
+                                Guardar Interno
                             </Button>
                             <Button
                                 type="primary"
-                                icon={<SaveOutlined />}
-                                onClick={handleSaveAndClose}
+                                onClick={handlePublishWithConfirmation}
                                 loading={saving}
+                                style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                                title="Publicar contenido para hacerlo visible al público"
                             >
-                                Guardar y Cerrar
+                                Publicar
                             </Button>
                         </Space>
                     </div>
