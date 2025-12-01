@@ -181,15 +181,22 @@ export default function ContenidoDinamico() {
             {contenidos.map((contenido, idx) => (
                 <div key={contenido.id}>
                     {/* Renderizar contenido HTML */}
-                    <div
-                        className="rich-content"
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contenido.contenidoHtml) }}
-                        style={{
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                            lineHeight: 1.6,
-                            color: '#333'
-                        }}
-                    />
+                    {/* Renderizar contenido HTML con estilos del editor */}
+                    <div className="rich-text-editor-wrapper">
+                        <div
+                            className="ql-editor rich-content"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contenido.contenidoHtml) }}
+                            style={{
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                                lineHeight: 1.6,
+                                color: '#333',
+                                padding: 0,
+                                height: 'auto',
+                                minHeight: 'auto',
+                                overflow: 'visible'
+                            }}
+                        />
+                    </div>
 
                     {/* Separador entre contenidos (excepto el último) */}
                     {idx < contenidos.length - 1 && (

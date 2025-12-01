@@ -1,0 +1,29 @@
+/* ImageContextMenu.css */
+.image-context-menu {
+    animation: fadeIn 0.15s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.image-context-menu .ant-menu {
+    background: white;
+    min-width: 200px;
+}
+
+.image-context-menu .ant-menu-item:hover {
+    background-color: #f5f5f5;
+}
+
+.image-context-menu .ant-menu-item-danger:hover {
+    background-color: #fff1f0;
+}

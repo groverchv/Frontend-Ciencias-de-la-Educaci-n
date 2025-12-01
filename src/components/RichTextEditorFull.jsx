@@ -35,6 +35,39 @@ for (let i = 6; i <= 200; i++) {
 SizeAttributor.whitelist = sizeArr;
 Quill.register(SizeAttributor, true);
 
+// Custom Image Blot para manejar clases de alineación
+const Image = Quill.import('formats/image');
+
+class CustomImage extends Image {
+    static create(value) {
+        const node = super.create(value);
+        return node;
+    }
+
+    static formats(domNode) {
+        const formats = super.formats(domNode);
+        if (domNode.className) {
+            formats.class = domNode.className;
+        }
+        return formats;
+    }
+
+    format(name, value) {
+        if (name === 'class') {
+            if (value) {
+                this.domNode.className = value;
+            } else {
+                this.domNode.removeAttribute('class');
+            }
+        } else {
+            super.format(name, value);
+        }
+    }
+}
+CustomImage.blotName = 'image';
+CustomImage.tagName = 'IMG';
+Quill.register(CustomImage, true);
+
 export default function RichTextEditorFull({
     value,
     onChange,
@@ -77,24 +110,71 @@ export default function RichTextEditorFull({
     };
 
     const imageHandler = () => {
-        const url = prompt('Ingresa la URL de la imagen:');
-        if (url) {
-            let finalUrl = url;
-            if (url.includes('drive.google.com')) {
-                let fileId = null;
-                const match1 = url.match(/\/file\/d\/([^\/\?]+)/);
-                if (match1) fileId = match1[1];
-                const match2 = url.match(/[?\&]id=([^\&]+)/);
-                if (!fileId && match2) fileId = match2[1];
-                if (fileId) finalUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+        // Crear input de archivo oculto
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.style.display = 'none';
+        document.body.appendChild(input);
+
+        input.onchange = async () => {
+            const file = input.files[0];
+
+            if (file) {
+                // Validar que sea una imagen
+                if (!file.type.startsWith('image/')) {
+                    alert('Por favor selecciona un archivo de imagen válido');
+                    document.body.removeChild(input);
+                    return;
+                }
+
+                // Validar tamaño (máximo 5MB)
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                if (file.size > maxSize) {
+                    alert('La imagen es demasiado grande. El tamaño máximo es 5MB');
+                    document.body.removeChild(input);
+                    return;
+                }
+
+                try {
+                    // Convertir imagen a Base64
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const base64 = e.target.result;
+                        const quill = quillRef.current.getEditor();
+                        const range = quill.getSelection(true);
+
+                        // Insertar imagen en el editor
+                        quill.insertEmbed(range.index, 'image', base64);
+                        quill.setSelection(range.index + 1);
+
+                        // Limpiar
+                        document.body.removeChild(input);
+                    };
+
+                    reader.onerror = () => {
+                        alert('Error al leer el archivo');
+                        document.body.removeChild(input);
+                    };
+
+                    reader.readAsDataURL(file);
+
+                } catch (error) {
+                    console.error('Error al procesar la imagen:', error);
+                    alert('Error al procesar la imagen');
+                    document.body.removeChild(input);
+                }
+            } else {
+                document.body.removeChild(input);
             }
-            const quill = quillRef.current?.getEditor();
-            if (quill) {
-                const range = quill.getSelection(true);
-                quill.insertEmbed(range.index, 'image', finalUrl);
-                quill.setSelection(range.index + 1);
-            }
-        }
+        };
+
+        input.oncancel = () => {
+            document.body.removeChild(input);
+        };
+
+        // Abrir selector de archivos
+        input.click();
     };
 
     const toolbarConfig = useMemo(() => {

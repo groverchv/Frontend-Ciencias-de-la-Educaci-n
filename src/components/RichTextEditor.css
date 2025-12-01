@@ -147,6 +147,25 @@
     margin-bottom: 10px;
 }
 
+/* Soporte para CLASES de alineación (persistencia robusta) */
+.rich-text-editor-wrapper .ql-editor img.align-center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.rich-text-editor-wrapper .ql-editor img.align-left {
+    display: block;
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.rich-text-editor-wrapper .ql-editor img.align-right {
+    display: block;
+    margin-left: auto;
+    margin-right: 0;
+}
+
 /* Personalización de botones del toolbar */
 .rich-text-editor-wrapper .ql-toolbar button {
     width: 28px;

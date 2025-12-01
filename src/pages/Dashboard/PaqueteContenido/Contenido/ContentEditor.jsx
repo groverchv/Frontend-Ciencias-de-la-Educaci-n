@@ -16,7 +16,9 @@ import { useParams, useNavigate } from "react-router-dom";
 
 import ContenidoService from "../../../../services/ContenidoService";
 import RichTextEditor from "../../../../components/RichTextEditorFull";
-import { useImportarWord, useExportarWord } from "./Funcionalidades";
+import { useImportarWord, useExportarWord, useImageConfig } from "./Funcionalidades";
+import ImageContextMenu from "./ImageContextMenu";
+import ImageConfigModal from "./ImageConfigModal";
 import "./ContentEditor.css";
 
 const { Title, Text } = Typography;
@@ -39,6 +41,20 @@ export default function ContentEditor() {
     // Hooks de funcionalidades Word
     const { importar: importFromWord } = useImportarWord(quillRef, setContenidoHtml);
     const { exportar: exportToWord } = useExportarWord(quillRef);
+
+    // Hook para configuración de imágenes
+    const {
+        modalVisible: imageModalVisible,
+        selectedImage,
+        contextMenu,
+        openConfigFromMenu,
+        applyImageConfig,
+        deleteImage,
+        closeModal: closeImageModal,
+        alignLeft,
+        alignCenter,
+        alignRight
+    } = useImageConfig(quillRef, contenidoHtml);
 
     // Cargar contenido al montar
     useEffect(() => {
@@ -271,6 +287,26 @@ export default function ContentEditor() {
             </div>
 
             {/* Presentation Mode removed - was part of block system */}
+
+            {/* Menú contextual para imágenes */}
+            <ImageContextMenu
+                visible={contextMenu.visible}
+                x={contextMenu.x}
+                y={contextMenu.y}
+                onDelete={deleteImage}
+                onConfig={openConfigFromMenu}
+                onAlignLeft={alignLeft}
+                onAlignCenter={alignCenter}
+                onAlignRight={alignRight}
+            />
+
+            {/* Modal de configuración de imagen */}
+            <ImageConfigModal
+                visible={imageModalVisible}
+                onCancel={closeImageModal}
+                onApply={applyImageConfig}
+                imageElement={selectedImage}
+            />
         </>
     );
 }
