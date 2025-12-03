@@ -1,5 +1,5 @@
 // src/App.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, useLocation } from "react-router-dom";
 import Header from "./components/Home/header";
 import Navbar from "./components/Home/navbar";
@@ -8,11 +8,34 @@ import AppRoutes from "./routes/appRoutes";
 import "./App.css";
 import bg from "./assets/fondo/fondo.svg";
 import DynamicSlider from "./components/Home/DynamicSlider";
+import WebSocketService from "./services/WebSocketService";
 
 function AppContent() {
   const location = useLocation();
   const isDashboard = location.pathname.startsWith("/dashboard");
   const isLogin = location.pathname === "/login";
+
+  // Conectar WebSocket para páginas públicas (no dashboard, no login)
+  useEffect(() => {
+    if (!isDashboard && !isLogin) {
+      const username = 'visitante-' + Math.random().toString(36).substr(2, 9);
+      
+      WebSocketService.connect(
+        username,
+        'other', // Páginas públicas
+        () => {
+          console.log('WebSocket conectado en página pública');
+        },
+        (error) => {
+          console.error('Error WebSocket en página pública:', error);
+        }
+      );
+
+      return () => {
+        WebSocketService.disconnect();
+      };
+    }
+  }, [isDashboard, isLogin]);
 
   if (isDashboard) {
     return <AppRoutes />;

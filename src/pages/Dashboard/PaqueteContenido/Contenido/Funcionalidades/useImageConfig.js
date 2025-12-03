@@ -5,6 +5,7 @@ export default function useImageConfig(quillRef, contenidoHtml) {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
     const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
+    const [clipboard, setClipboard] = useState(null); // Internal clipboard for copy/paste
 
     // Configurar event listeners en imágenes - SE EJECUTA CUANDO CAMBIA EL CONTENIDO
     useEffect(() => {
@@ -36,22 +37,42 @@ export default function useImageConfig(quillRef, contenidoHtml) {
                 images.forEach((img, index) => {
                     console.log(`  Imagen ${index + 1}`);
 
-                    // Click simple
+                    // Click IZQUIERDO: Seleccionar para redimensionar y arrastrar
                     img.onclick = (e) => {
-                        e.preventDefault();
                         e.stopPropagation();
-                        console.log('🖱️ CLICK!');
-                        setSelectedImage(img);
-                        setContextMenu({ visible: true, x: e.clientX, y: e.clientY });
+                        console.log('🖱️ Click izquierdo - Activando resize y drag');
+
+                        // Seleccionar la imagen en Quill para activar resize handles
+                        const quill = quillRef.current?.getEditor();
+                        if (quill) {
+                            const imgBlot = quill.constructor.find(img);
+                            if (imgBlot) {
+                                const imgIndex = quill.getIndex(imgBlot);
+                                // Esto activa el módulo quill-image-resize-module
+                                quill.setSelection(imgIndex, 1, 'user');
+                            }
+                        }
                     };
 
-                    // Click derecho
+                    // Click DERECHO: Menú contextual
                     img.oncontextmenu = (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('🖱️ RIGHT-CLICK!');
+                        const imgRect = img.getBoundingClientRect();
                         setSelectedImage(img);
-                        setContextMenu({ visible: true, x: e.clientX, y: e.clientY });
+                        setContextMenu({
+                            visible: true,
+                            x: e.clientX,
+                            y: e.clientY,
+                            imageRect: {
+                                left: imgRect.left,
+                                top: imgRect.top,
+                                right: imgRect.right,
+                                bottom: imgRect.bottom,
+                                width: imgRect.width,
+                                height: imgRect.height
+                            }
+                        });
                         return false;
                     };
 
@@ -83,7 +104,7 @@ export default function useImageConfig(quillRef, contenidoHtml) {
 
         // Cleanup del timer
         return () => clearTimeout(timer);
-    }, [contenidoHtml]); // Usar contenidoHtml como dependencia
+    }, [contenidoHtml]); // Usar con tenidoHtml como dependencia
 
     // Cerrar menú al hacer click fuera
     useEffect(() => {
@@ -107,12 +128,8 @@ export default function useImageConfig(quillRef, contenidoHtml) {
         if (!selectedImage || !quillRef.current) return;
 
         const quill = quillRef.current.getEditor();
-
-        // Usar CLASES en lugar de data attributes para mejor compatibilidad
-        // Primero remover clases de alineación existentes
         selectedImage.classList.remove('align-left', 'align-center', 'align-right');
 
-        // Agregar nueva clase
         if (alignment) {
             selectedImage.classList.add(`align-${alignment}`);
         }
@@ -130,7 +147,6 @@ export default function useImageConfig(quillRef, contenidoHtml) {
             selectedImage.style.marginRight = '0';
         }
 
-        // IMPORTANTE: Forzar actualización de Quill para que persista los cambios
         const range = quill.getSelection() || { index: 0, length: 0 };
         quill.updateContents([{ retain: quill.getLength() }], 'user');
 
@@ -140,6 +156,76 @@ export default function useImageConfig(quillRef, contenidoHtml) {
     const alignLeft = useCallback(() => applyQuickAlignment('left'), [applyQuickAlignment]);
     const alignCenter = useCallback(() => applyQuickAlignment('center'), [applyQuickAlignment]);
     const alignRight = useCallback(() => applyQuickAlignment('right'), [applyQuickAlignment]);
+
+    // Copy image
+    const copyImage = useCallback(() => {
+        if (!selectedImage) return;
+        setClipboard({
+            src: selectedImage.src,
+            alt: selectedImage.getAttribute('alt') || '',
+            title: selectedImage.getAttribute('title') || '',
+            style: selectedImage.getAttribute('style') || '',
+            className: selectedImage.className || ''
+        });
+        setContextMenu({ visible: false, x: 0, y: 0 });
+    }, [selectedImage]);
+
+    // Cut image
+    const cutImage = useCallback(() => {
+        if (!selectedImage) return;
+        setClipboard({
+            src: selectedImage.src,
+            alt: selectedImage.getAttribute('alt') || '',
+            title: selectedImage.getAttribute('title') || '',
+            style: selectedImage.getAttribute('style') || '',
+            className: selectedImage.className || ''
+        });
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+            const imgBlot = quill.constructor.find(selectedImage);
+            if (imgBlot) {
+                const index = quill.getIndex(imgBlot);
+                quill.deleteText(index, 1);
+            }
+        }
+        setContextMenu({ visible: false, x: 0, y: 0 });
+        setSelectedImage(null);
+    }, [selectedImage, quillRef]);
+
+    // Paste image
+    const pasteImage = useCallback(() => {
+        if (!clipboard || !quillRef.current) return;
+        const quill = quillRef.current.getEditor();
+        const range = quill.getSelection() || { index: 0 };
+        quill.insertEmbed(range.index, 'image', clipboard.src);
+        setTimeout(() => {
+            const images = quill.root.querySelectorAll('img');
+            const newImg = images[images.length - 1];
+            if (newImg && newImg.src === clipboard.src) {
+                if (clipboard.alt) newImg.setAttribute('alt', clipboard.alt);
+                if (clipboard.title) newImg.setAttribute('title', clipboard.title);
+                if (clipboard.style) newImg.setAttribute('style', clipboard.style);
+                if (clipboard.className) newImg.className = clipboard.className;
+            }
+        }, 50);
+        setContextMenu({ visible: false, x: 0, y: 0 });
+    }, [clipboard, quillRef]);
+
+    // Rotate image
+    const rotateImage = useCallback(() => {
+        if (!selectedImage) return;
+        const currentRotation = parseInt(selectedImage.getAttribute('data-rotation') || '0');
+        const newRotation = (currentRotation + 90) % 360;
+        selectedImage.setAttribute('data-rotation', newRotation);
+        selectedImage.style.transform = `rotate(${newRotation}deg)`;
+        setContextMenu({ visible: false, x: 0, y: 0 });
+    }, [selectedImage]);
+
+    // Open crop modal
+    const openCropModal = useCallback(() => {
+        setContextMenu({ visible: false, x: 0, y: 0 });
+        setModalVisible(true);
+    }, []);
 
     // Aplicar configuración completa
     const applyImageConfig = useCallback((config) => {
@@ -170,9 +256,7 @@ export default function useImageConfig(quillRef, contenidoHtml) {
         }
 
         if (config.alignment) {
-            // Remover clases anteriores
             selectedImage.classList.remove('align-left', 'align-center', 'align-right');
-            // Agregar nueva clase
             selectedImage.classList.add(`align-${config.alignment}`);
 
             selectedImage.style.display = 'block';
@@ -191,7 +275,6 @@ export default function useImageConfig(quillRef, contenidoHtml) {
         if (config.styles.float && config.styles.float !== 'none') {
             selectedImage.style.display = 'inline-block';
             selectedImage.style.verticalAlign = 'top';
-            // Remover alineación si hay float
             selectedImage.classList.remove('align-left', 'align-center', 'align-right');
 
             if (config.styles.float === 'left') {
@@ -201,7 +284,6 @@ export default function useImageConfig(quillRef, contenidoHtml) {
             }
         }
 
-        // IMPORTANTE: Forzar actualización de Quill para que persista los cambios
         const range = quill.getSelection() || { index: 0, length: 0 };
         quill.updateContents([{ retain: quill.getLength() }], 'user');
 
@@ -231,9 +313,15 @@ export default function useImageConfig(quillRef, contenidoHtml) {
         modalVisible,
         selectedImage,
         contextMenu,
+        clipboard,
         openConfigFromMenu,
         applyImageConfig,
         deleteImage,
+        copyImage,
+        cutImage,
+        pasteImage,
+        rotateImage,
+        openCropModal,
         closeModal,
         closeContextMenu: () => setContextMenu({ visible: false, x: 0, y: 0 }),
         alignLeft,

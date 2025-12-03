@@ -1,0 +1,141 @@
+/* Image Caption Styles */
+
+/* Wrapper container (replaces figure for Quill compatibility) */
+.image-figure {
+    display: block;
+    margin: 20px auto;
+    max-width: 100%;
+    position: relative;
+}
+
+.image-figure.align-left {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.image-figure.align-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.image-figure.align-right {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+/* Image inside wrapper */
+.image-figure img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 0;
+}
+
+/* Caption container (replaces figcaption) */
+.image-caption {
+    display: block !important;
+    width: 100% !important;
+    clear: both !important;
+    background: #f8f9fa;
+    border-left: 4px solid #1890ff;
+    padding: 12px 16px;
+    margin-top: 8px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Caption title */
+.caption-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #262626;
+    margin: 0 0 6px 0;
+    line-height: 1.4;
+}
+
+/* Caption subtitle */
+.caption-subtitle {
+    font-size: 14px;
+    font-weight: 500;
+    color: #595959;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+    font-style: italic;
+}
+
+/* Caption description */
+.caption-description {
+    font-size: 13px;
+    color: #8c8c8c;
+    margin: 0;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .image-figure {
+        margin: 16px auto;
+    }
+
+    .image-caption {
+        padding: 10px 12px;
+    }
+
+    .caption-title {
+        font-size: 15px;
+    }
+
+    .caption-subtitle {
+        font-size: 13px;
+    }
+
+    .caption-description {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .image-figure {
+        margin: 12px auto;
+    }
+
+    .image-caption {
+        padding: 8px 10px;
+    }
+
+    .caption-title {
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    .caption-subtitle {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .caption-description {
+        font-size: 11px;
+    }
+}
+
+/* No caption spacing */
+.image-figure:not(:has(.image-caption)) {
+    margin-bottom: 16px;
+}
+
+/* Print styles */
+@media print {
+    .image-caption {
+        background: white;
+        border-left: 2px solid #000;
+        padding: 8px 12px;
+        box-shadow: none;
+    }
+
+    .caption-title,
+    .caption-subtitle,
+    .caption-description {
+        color: #000;
+    }
+}

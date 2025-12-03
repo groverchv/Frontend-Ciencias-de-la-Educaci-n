@@ -6,7 +6,6 @@ import { LoadingOutlined } from "@ant-design/icons";
 import DOMPurify from 'dompurify';
 import ContenidoService from "../../services/ContenidoService";
 import Sub_MenuService from "../../services/Sub_MenuService";
-import VisitaService from "../../services/VisitaService";
 // BlockRenderers and BloqueService removed - block system eliminated
 import 'react-quill-new/dist/quill.snow.css';
 import '../RichTextEditor.css';
@@ -97,20 +96,6 @@ export default function ContenidoDinamico() {
                 console.log("\n✨ Contenidos finales a renderizar:", contenidosConHtml.length);
                 console.log("📦 Contenidos con datos:", contenidosConHtml);
                 setContenidos(contenidosConHtml);
-
-                // Register visits for each content (with debouncing)
-                if (contenidosConHtml.length > 0) {
-                    setTimeout(async () => {
-                        for (const contenido of contenidosConHtml) {
-                            try {
-                                await VisitaService.registerVisit(contenido.id);
-                                console.log(`📊 Visita registrada para contenido: ${contenido.titulo}`);
-                            } catch (error) {
-                                console.error(`Error registrando visita para ${contenido.id}:`, error);
-                            }
-                        }
-                    }, 2000); // Wait 2 seconds to avoid duplicate registrations
-                }
             } catch (err) {
                 console.error("Error al cargar contenido:", err);
                 setError(err.toString());

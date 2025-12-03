@@ -15,6 +15,8 @@ import {
   UserOutlined,
   DownOutlined,
   HomeOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import AuthService from "../../services/AuthService.js";
@@ -23,7 +25,7 @@ const { Header } = Layout;
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-export default function DashboardHeader() {
+export default function DashboardHeader({ onToggleSidebar, sidebarCollapsed }) {
   const navigate = useNavigate();
   const user = AuthService.getCurrentUser();
   const screens = useBreakpoint();
@@ -54,8 +56,7 @@ export default function DashboardHeader() {
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      /* position: sticky removed */
-      flex-wrap: wrap; /* si no entra todo, baja a segunda línea pero sigue en el header */
+      flex-wrap: wrap;
     }
 
     .dashboard-header-left {
@@ -65,6 +66,8 @@ export default function DashboardHeader() {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
     }
 
     .dashboard-header-right {
@@ -99,13 +102,12 @@ export default function DashboardHeader() {
     }
 
     @media (max-width: 480px) {
-      .dashboard-header-left {
-        flex: 1 1 100%;
-        text-align: left;
+      .dashboard-header {
+        gap: 8px;
       }
-      .dashboard-header-right {
-        flex: 1 1 100%;
-        justify-content: flex-end;
+      
+      .dashboard-header-left span {
+        font-size: 14px;
       }
     }
   `;
@@ -114,9 +116,21 @@ export default function DashboardHeader() {
     <>
       <style>{css}</style>
       <Header className="dashboard-header">
-        {/* Título */}
+        {/* Botón Toggle Sidebar + Título */}
         <div className="dashboard-header-left">
-          {isMobile ? "Panel" : "Panel de Administración"}
+          <Button
+            type="text"
+            icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={onToggleSidebar}
+            style={{
+              fontSize: '18px',
+              width: 40,
+              height: 40,
+              color: '#fff',
+              marginRight: 16
+            }}
+          />
+          <span>{isMobile ? "Panel" : "Panel de Administración"}</span>
         </div>
 
         {/* Botón Inicio + Usuario */}

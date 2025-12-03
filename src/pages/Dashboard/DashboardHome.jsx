@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, Row, Col, Statistic, Typography, Spin, List, Progress, Radio, Empty } from "antd";
+import { Card, Row, Col, Statistic, Typography, Spin, List, Progress, Radio, Empty, Badge, Timeline, Space } from "antd";
 import {
   UserOutlined,
   FileTextOutlined,
@@ -8,6 +8,10 @@ import {
   EyeOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  WifiOutlined,
+  SafetyOutlined,
+  TrophyOutlined,
+  DashboardOutlined,
 } from "@ant-design/icons";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import AuthService from "../../services/AuthService.js";
@@ -15,14 +19,36 @@ import UsuarioService from "../../services/UsuarioService.js";
 import MenuService from "../../services/MenuService.js";
 import Sub_MenuService from "../../services/Sub_MenuService.js";
 import ContenidoService from "../../services/ContenidoService.js";
-import VisitaService from "../../services/VisitaService.js";
+import WebSocketService from "../../services/WebSocketService.js";
+import { useBackupNotifications } from "../../hooks/useBackupNotifications.js";
 
 const { Title, Text } = Typography;
 
 export default function DashboardHome() {
-  const user = AuthService.getCurrentUser();
+  // Obtener usuario autenticado desde AuthService
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState("mes"); // dia, semana, mes, año
+  const [connectedUsers, setConnectedUsers] = useState({ 
+    total: 0, 
+    dashboard: 0, 
+    otherPages: 0 
+  });
+  const [wsConnected, setWsConnected] = useState(false);
+  
+  // Usar el hook de notificaciones de backup
+  useBackupNotifications();
+  
+  // Obtener usuario al cargar el componente
+  useEffect(() => {
+    const currentUser = AuthService.getCurrentUser();
+    console.log('Usuario actual:', currentUser);
+    setUser(currentUser);
+    
+    // Cargar estadísticas inmediatamente
+    fetchStatistics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  
   const [stats, setStats] = useState({
     totalUsuarios: 0,
     usuariosActivos: 0,
@@ -32,25 +58,17 @@ export default function DashboardHome() {
     submenusActivos: 0,
     totalContenidos: 0,
     contenidosPorSubmenu: [],
-    totalVisitas: 0,
-    visitTrends: [],
-    topContent: [],
   });
-
-  useEffect(() => {
-    fetchStatistics();
-  }, [period]); // Re-fetch when period changes
 
   const fetchStatistics = async () => {
     setLoading(true);
     try {
       // Fetch all data concurrently
-      const [usuarios, menus, submenus, contenidos, visitStats] = await Promise.all([
+      const [usuarios, menus, submenus, contenidos] = await Promise.all([
         UsuarioService.getAllUsuarios(),
         MenuService.getAllMenus(),
-        Sub_MenuService.getAllSub_Menus(),
+        Sub_MenuService.getAllSubMenu(),
         ContenidoService.getAllContenidos(),
-        VisitaService.getVisitStats(period),
       ]);
 
       // Calculate statistics
@@ -71,15 +89,22 @@ export default function DashboardHome() {
       if (Array.isArray(submenus)) {
         submenus.forEach((submenu) => {
           const contenidosCount = Array.isArray(contenidos)
-            ? contenidos.filter((c) => c.sub_menu?.id === submenu.id).length
+            ? contenidos.filter((c) => {
+                // El backend puede devolver subMenu o sub_menu dependiendo de la serialización
+                const subMenuId = c.subMenu?.id || c.sub_menu?.id;
+                return subMenuId === submenu.id;
+              }).length
             : 0;
 
           // Show ALL submenus, regardless of content or status
           contenidosPorSubmenu.push({
+            submenuId: submenu.id,
             submenuNombre: submenu.titulo,
-            menuNombre: submenu.menu?.titulo || "Sin menú",
+            menuNombre: submenu.menu_id?.titulo || submenu.menu?.titulo || "Sin menú",
+            menuId: submenu.menu_id?.id || submenu.menu?.id || null,
             contenidosCount,
             estado: submenu.estado,
+            ruta: submenu.ruta,
           });
         });
       }
@@ -96,9 +121,6 @@ export default function DashboardHome() {
         submenusActivos,
         totalContenidos: Array.isArray(contenidos) ? contenidos.length : 0,
         contenidosPorSubmenu,
-        totalVisitas: visitStats?.totalVisitas || 0,
-        visitTrends: visitStats?.tendencias || [],
-        topContent: visitStats?.contenidoMasVisto || [],
       });
     } catch (error) {
       console.error("Error fetching statistics:", error);
@@ -107,10 +129,58 @@ export default function DashboardHome() {
     }
   };
 
+  useEffect(() => {
+    // Conectar WebSocket SIEMPRE (con o sin autenticación)
+    // Si hay usuario autenticado, usar su username, sino usar "anonymous"
+    const username = user?.username || 'anonymous';
+    const location = 'dashboard'; // Esta página es el dashboard
+    
+    console.log('Iniciando conexión WebSocket - Usuario:', username, 'Ubicación:', location);
+    
+    WebSocketService.connect(
+      username,
+      location,
+      () => {
+        console.log('WebSocket conectado exitosamente -', username, 'en', location);
+        setWsConnected(true);
+        
+        // Suscribirse a actualizaciones de usuarios conectados
+        WebSocketService.subscribe('/topic/users-count', (data) => {
+          console.log('Datos de usuarios conectados recibidos:', data);
+          
+          // Verificar si data es un objeto con total, dashboard y otherPages
+          if (typeof data === 'object' && data.total !== undefined) {
+            setConnectedUsers({
+              total: data.total || 0,
+              dashboard: data.dashboard || 0,
+              otherPages: data.otherPages || 0
+            });
+          } else {
+            // Fallback por si acaso recibe solo un número
+            console.warn('Formato de datos inesperado:', data);
+          }
+        });
+      },
+      (error) => {
+        console.error('Error en WebSocket:', error);
+        setWsConnected(false);
+      }
+    );
+
+    return () => {
+      console.log('Desconectando WebSocket...');
+      WebSocketService.disconnect();
+    };
+  }, [user]); // Ejecutar cuando user cambie (pero también se ejecuta con null)
+
   if (loading) {
     return (
       <div style={{ textAlign: "center", padding: "100px 0" }}>
-        <Spin size="large" tip="Cargando estadísticas..." />
+        <Spin size="large" spinning={true}>
+          <div style={{ padding: '50px' }}>
+            <Text>Cargando estadísticas...</Text>
+          </div>
+        </Spin>
       </div>
     );
   }
@@ -141,69 +211,38 @@ export default function DashboardHome() {
         <Col xs={24} sm={12} lg={6}>
           <Card hoverable>
             <Statistic
+              title={
+                <span>
+                  Visitantes en Panel {" "}
+                  <Badge status={wsConnected ? "processing" : "default"} />
+                </span>
+              }
+              value={connectedUsers.dashboard}
+              prefix={<WifiOutlined />}
+              valueStyle={{ color: wsConnected ? "#1890ff" : "#d9d9d9" }}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={6}>
+          <Card hoverable>
+            <Statistic
+              title="Visitantes en Sitio Público"
+              value={connectedUsers.otherPages}
+              prefix={<EyeOutlined />}
+              valueStyle={{ color: wsConnected ? "#52c41a" : "#d9d9d9" }}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={6}>
+          <Card hoverable>
+            <Statistic
               title="Total Usuarios"
               value={stats.totalUsuarios}
               prefix={<UserOutlined />}
               valueStyle={{ color: "#3f8600" }}
             />
-            <div style={{ marginTop: 12 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                <CheckCircleOutlined style={{ color: "#52c41a" }} /> Activos: {stats.usuariosActivos}
-              </Text>
-              <Progress
-                percent={activeUsersPercentage}
-                size="small"
-                strokeColor="#52c41a"
-                showInfo={false}
-                style={{ marginTop: 8 }}
-              />
-            </div>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} lg={6}>
-          <Card hoverable>
-            <Statistic
-              title="Total Menús"
-              value={stats.totalMenus}
-              prefix={<MenuOutlined />}
-              valueStyle={{ color: "#1890ff" }}
-            />
-            <div style={{ marginTop: 12 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                <CheckCircleOutlined style={{ color: "#1890ff" }} /> Activos: {stats.menusActivos}
-              </Text>
-              <Progress
-                percent={activeMenusPercentage}
-                size="small"
-                strokeColor="#1890ff"
-                showInfo={false}
-                style={{ marginTop: 8 }}
-              />
-            </div>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} lg={6}>
-          <Card hoverable>
-            <Statistic
-              title="Total Submenús"
-              value={stats.totalSubmenus}
-              prefix={<AppstoreOutlined />}
-              valueStyle={{ color: "#722ed1" }}
-            />
-            <div style={{ marginTop: 12 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                <CheckCircleOutlined style={{ color: "#722ed1" }} /> Activos: {stats.submenusActivos}
-              </Text>
-              <Progress
-                percent={activeSubmenusPercentage}
-                size="small"
-                strokeColor="#722ed1"
-                showInfo={false}
-                style={{ marginTop: 8 }}
-              />
-            </div>
           </Card>
         </Col>
 
@@ -215,191 +254,119 @@ export default function DashboardHome() {
               prefix={<FileTextOutlined />}
               valueStyle={{ color: "#fa8c16" }}
             />
-            <div style={{ marginTop: 12 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                <ClockCircleOutlined style={{ color: "#fa8c16" }} /> Publicados
-              </Text>
-            </div>
           </Card>
         </Col>
       </Row>
 
-      {/* Visit Statistics with Period Filter */}
+      {/* Gráficas Estadísticas */}
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col span={24}>
-          <Card
-            title={
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-                <span>
-                  <EyeOutlined style={{ marginRight: 8, color: "#1890ff" }} />
-                  Estadísticas de Visitas
-                </span>
-                <Radio.Group value={period} onChange={(e) => setPeriod(e.target.value)} buttonStyle="solid">
-                  <Radio.Button value="dia">Día</Radio.Button>
-                  <Radio.Button value="semana">Semana</Radio.Button>
-                  <Radio.Button value="mes">Mes</Radio.Button>
-                  <Radio.Button value="año">Año</Radio.Button>
-                </Radio.Group>
-              </div>
-            }
-            hoverable
-          >
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={12}>
-                <Statistic
-                  title={`Total de Visitas (${period})`}
-                  value={stats.totalVisitas}
-                  suffix="visitas"
-                  prefix={<EyeOutlined />}
-                  valueStyle={{ color: "#1890ff", fontSize: 28 }}
-                />
-              </Col>
-              <Col xs={24} md={12}>
-                <Text type="secondary" style={{ fontSize: 13 }}>
-                  Período seleccionado: <strong>{period.charAt(0).toUpperCase() + period.slice(1)}</strong>
-                </Text>
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Visit Trends Chart */}
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} lg={14}>
+        {/* Gráfica de distribución por menú */}
+        <Col xs={24} lg={12}>
           <Card
             title={
               <span>
-                📈 Tendencia de Visitas ({period})
+                <AppstoreOutlined style={{ marginRight: 8, color: "#1890ff" }} />
+                Distribución de Contenidos por Menú
               </span>
             }
             hoverable
+            bodyStyle={{ padding: '24px' }}
           >
-            {stats.visitTrends.length > 0 ? (
+            {stats.totalContenidos > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={stats.visitTrends}>
-                  <defs>
-                    <linearGradient id="colorVisitas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1890ff" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#1890ff" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
+                <BarChart
+                  data={(() => {
+                    const menuData = {};
+                    stats.contenidosPorSubmenu.forEach(item => {
+                      if (!menuData[item.menuNombre]) {
+                        menuData[item.menuNombre] = {
+                          menu: item.menuNombre,
+                          contenidos: 0,
+                        };
+                      }
+                      menuData[item.menuNombre].contenidos += item.contenidosCount;
+                    });
+                    return Object.values(menuData).sort((a, b) => b.contenidos - a.contenidos);
+                  })()}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="fecha" style={{ fontSize: 12 }} />
-                  <YAxis style={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="visitas"
-                    name="Visitas"
-                    stroke="#1890ff"
-                    fillOpacity={1}
-                    fill="url(#colorVisitas)"
+                  <XAxis 
+                    dataKey="menu" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={80}
+                    style={{ fontSize: 12 }}
                   />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <Empty description="No hay datos de visitas para este período" />
-            )}
-          </Card>
-        </Col>
-
-        {/* Top Visited Content */}
-        <Col xs={24} lg={10}>
-          <Card
-            title={
-              <span>
-                🏆 Contenido Más Visitado ({period})
-              </span>
-            }
-            hoverable
-          >
-            {stats.topContent.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stats.topContent.slice(0, 5)} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" style={{ fontSize: 12 }} />
-                  <YAxis dataKey="titulo" type="category" width={120} style={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <YAxis style={{ fontSize: 12 }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  />
                   <Legend />
-                  <Bar dataKey="visitas" name="Visitas" fill="#52c41a" />
+                  <Bar 
+                    dataKey="contenidos" 
+                    name="Contenidos" 
+                    fill="#1890ff"
+                    radius={[8, 8, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <Empty description="No hay datos de contenido visitado" />
+              <Empty description="No hay contenidos para mostrar" />
             )}
           </Card>
         </Col>
-      </Row>
 
-      {/* Summary Statistics */}
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        {/* Top 5 Submenús */}
         <Col xs={24} lg={12}>
           <Card
             title={
               <span>
-                <FileTextOutlined style={{ marginRight: 8, color: "#52c41a" }} />
-                Resumen General
+                <TrophyOutlined style={{ marginRight: 8, color: "#faad14" }} />
+                Top 5 Submenús con Más Contenido
               </span>
             }
             hoverable
-          >
-            <Row gutter={16}>
-              <Col span={8}>
-                <Statistic
-                  title="Menús"
-                  value={stats.menusActivos}
-                  suffix={`/ ${stats.totalMenus}`}
-                  valueStyle={{ fontSize: 20, color: "#1890ff" }}
-                />
-              </Col>
-              <Col span={8}>
-                <Statistic
-                  title="Submenús"
-                  value={stats.submenusActivos}
-                  suffix={`/ ${stats.totalSubmenus}`}
-                  valueStyle={{ fontSize: 20, color: "#722ed1" }}
-                />
-              </Col>
-              <Col span={8}>
-                <Statistic
-                  title="Usuarios"
-                  value={stats.usuariosActivos}
-                  suffix={`/ ${stats.totalUsuarios}`}
-                  valueStyle={{ fontSize: 20, color: "#52c41a" }}
-                />
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={12}>
-          <Card
-            title={
-              <span>
-                📊 Resumen de Visitas
-              </span>
-            }
-            hoverable
+            bodyStyle={{ padding: '24px' }}
           >
             <List
-              size="small"
-              dataSource={[
-                { label: "Total de Visitas", value: stats.totalVisitas, color: "#1890ff" },
-                { label: "Contenidos Publicados", value: stats.totalContenidos, color: "#fa8c16" },
-                {
-                  label: "Promedio por Contenido",
-                  value: stats.totalContenidos > 0 ? Math.round(stats.totalVisitas / stats.totalContenidos) : 0,
-                  color: "#52c41a",
-                },
-              ]}
-              renderItem={(item) => (
+              size="large"
+              dataSource={stats.contenidosPorSubmenu.slice(0, 5)}
+              renderItem={(item, index) => (
                 <List.Item>
-                  <Text>{item.label}:</Text>
-                  <Text strong style={{ color: item.color }}>
-                    {item.value}
-                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: 12 }}>
+                    <div style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      background: index === 0 ? '#faad14' : index === 1 ? '#d9d9d9' : index === 2 ? '#cd7f32' : '#f0f0f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      color: index < 3 ? 'white' : '#8c8c8c',
+                      fontSize: 16,
+                    }}>
+                      {index + 1}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <Text strong style={{ display: 'block', fontSize: 14 }}>{item.submenuNombre}</Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        📁 {item.menuNombre}
+                      </Text>
+                    </div>
+                    <Badge 
+                      count={item.contenidosCount} 
+                      showZero 
+                      style={{ 
+                        backgroundColor: item.contenidosCount > 0 ? '#1890ff' : '#d9d9d9',
+                        fontSize: 14,
+                        padding: '0 12px',
+                        height: 28,
+                        lineHeight: '28px',
+                      }} 
+                    />
+                  </div>
                 </List.Item>
               )}
             />
@@ -407,77 +374,91 @@ export default function DashboardHome() {
         </Col>
       </Row>
 
-      {/* Content per Submenu - Dynamic Cards */}
+      {/* Nuevas Estadísticas Adicionales */}
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col span={24}>
+        {/* Actividad del Sistema */}
+        <Col xs={24} lg={12}>
           <Card
             title={
               <span>
-                <AppstoreOutlined style={{ marginRight: 8, color: "#722ed1" }} />
-                Contenido por Submenú ({stats.contenidosPorSubmenu.length} submenús)
+                <DashboardOutlined style={{ marginRight: 8, color: "#52c41a" }} />
+                Estado del Sistema
               </span>
             }
             hoverable
           >
-            {stats.contenidosPorSubmenu.length === 0 ? (
-              <Text type="secondary">No hay submenús con contenido.</Text>
-            ) : (
-              <List
-                grid={{
-                  gutter: 16,
-                  xs: 1,
-                  sm: 2,
-                  md: 2,
-                  lg: 3,
-                  xl: 4,
-                  xxl: 4,
-                }}
-                dataSource={stats.contenidosPorSubmenu}
-                renderItem={(item) => (
-                  <List.Item>
-                    <Card
-                      size="small"
-                      hoverable
-                      style={{
-                        borderLeft: `4px solid ${item.estado ? "#52c41a" : "#d9d9d9"}`,
-                      }}
-                    >
-                      <Statistic
-                        title={
-                          <div>
-                            <Text strong style={{ fontSize: 13 }}>
-                              {item.submenuNombre}
-                            </Text>
-                            <br />
-                            <Text type="secondary" style={{ fontSize: 11 }}>
-                              {item.menuNombre}
-                            </Text>
-                          </div>
-                        }
-                        value={item.contenidosCount}
-                        suffix="contenidos"
-                        valueStyle={{
-                          fontSize: 24,
-                          color: item.estado ? "#1890ff" : "#8c8c8c",
-                        }}
-                        prefix={<FileTextOutlined />}
-                      />
-                      <div style={{ marginTop: 8 }}>
-                        {item.estado ? (
-                          <Text style={{ fontSize: 11, color: "#52c41a" }}>
-                            <CheckCircleOutlined /> Activo
-                          </Text>
-                        ) : (
-                          <Text style={{ fontSize: 11, color: "#8c8c8c" }}>
-                            <ClockCircleOutlined /> Inactivo
-                          </Text>
-                        )}
-                      </div>
-                    </Card>
-                  </List.Item>
-                )}
-              />
-            )}
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text>Usuarios Activos</Text>
+                  <Text strong>{stats.usuariosActivos}/{stats.totalUsuarios}</Text>
+                </div>
+                <Progress
+                  percent={stats.totalUsuarios > 0 ? Math.round((stats.usuariosActivos / stats.totalUsuarios) * 100) : 0}
+                  strokeColor="#52c41a"
+                  size="small"
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text>Menús Activos</Text>
+                  <Text strong>{stats.menusActivos}/{stats.totalMenus}</Text>
+                </div>
+                <Progress
+                  percent={stats.totalMenus > 0 ? Math.round((stats.menusActivos / stats.totalMenus) * 100) : 0}
+                  strokeColor="#1890ff"
+                  size="small"
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text>Submenús Activos</Text>
+                  <Text strong>{stats.submenusActivos}/{stats.totalSubmenus}</Text>
+                </div>
+                <Progress
+                  percent={stats.totalSubmenus > 0 ? Math.round((stats.submenusActivos / stats.totalSubmenus) * 100) : 0}
+                  strokeColor="#722ed1"
+                  size="small"
+                />
+              </div>
+            </Space>
+          </Card>
+        </Col>
+
+        {/* Métricas Clave */}
+        <Col xs={24} lg={12}>
+          <Card
+            title={
+              <span>
+                <TrophyOutlined style={{ marginRight: 8, color: "#faad14" }} />
+                Métricas Clave
+              </span>
+            }
+            hoverable
+          >
+            <Space direction="vertical" style={{ width: '100%' }} size="large">
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>Contenidos por Submenú</Text>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
+                  <Text strong style={{ fontSize: 28, color: '#1890ff' }}>
+                    {stats.totalSubmenus > 0 ? Math.round(stats.totalContenidos / stats.totalSubmenus) : 0}
+                  </Text>
+                  <Text type="secondary">promedio</Text>
+                </div>
+              </div>
+
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>Categorías con Contenido</Text>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
+                  <Text strong style={{ fontSize: 28, color: '#52c41a' }}>
+                    {stats.contenidosPorSubmenu.filter(s => s.contenidosCount > 0).length}
+                  </Text>
+                  <Text type="secondary">de {stats.contenidosPorSubmenu.length}</Text>
+                </div>
+              </div>
+            </Space>
           </Card>
         </Col>
       </Row>

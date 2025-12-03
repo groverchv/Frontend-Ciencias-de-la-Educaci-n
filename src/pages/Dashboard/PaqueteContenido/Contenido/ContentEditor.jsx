@@ -47,9 +47,15 @@ export default function ContentEditor() {
         modalVisible: imageModalVisible,
         selectedImage,
         contextMenu,
+        clipboard,
         openConfigFromMenu,
         applyImageConfig,
         deleteImage,
+        copyImage,
+        cutImage,
+        pasteImage,
+        rotateImage,
+        openCropModal,
         closeModal: closeImageModal,
         alignLeft,
         alignCenter,
@@ -293,11 +299,18 @@ export default function ContentEditor() {
                 visible={contextMenu.visible}
                 x={contextMenu.x}
                 y={contextMenu.y}
+                imageRect={contextMenu.imageRect}
+                onConfigure={openConfigFromMenu}
                 onDelete={deleteImage}
-                onConfig={openConfigFromMenu}
+                onCopy={copyImage}
+                onCut={cutImage}
+                onPaste={pasteImage}
+                onCrop={openCropModal}
+                onRotate={rotateImage}
                 onAlignLeft={alignLeft}
                 onAlignCenter={alignCenter}
                 onAlignRight={alignRight}
+                hasClipboard={clipboard !== null}
             />
 
             {/* Modal de configuración de imagen */}

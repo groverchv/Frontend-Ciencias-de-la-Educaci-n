@@ -19,6 +19,16 @@ const getUsuarioActualObj = () => {
 };
 
 const ContenidoService = {
+    // Obtener todos los contenidos
+    getAllContenidos: async () => {
+        try {
+            const response = await api.get('/contenidos');
+            return response.data;
+        } catch (error) {
+            throw error.response?.data?.message || "Error al obtener todos los contenidos";
+        }
+    },
+
     // Obtener todos los contenidos de un SubMenu
     getContenidosBySubMenu: async (subMenuId) => {
         try {
