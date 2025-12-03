@@ -198,9 +198,14 @@ export default function DashboardSidebar({ collapsed }) {
             label: "Gestionar Presentacion",
         },
         {
-            key: "base-datos",
+            key: "/dashboard/backup",
             icon: <DatabaseOutlined />,
-            label: "Base de Datos",
+            label: "Gestionar Backup",
+        },
+        {
+            key: "base-datos-acciones",
+            icon: <DatabaseOutlined />,
+            label: "Backup Rápido",
             children: [
                 {
                     key: "download-backup",

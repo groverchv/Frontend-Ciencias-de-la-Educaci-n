@@ -143,6 +143,115 @@ class BackupService {
             throw error;
         }
     }
+
+    /**
+     * Listar todos los backups disponibles
+     */
+    async listBackups() {
+        try {
+            const response = await api.get(`${API_URL}/list`);
+            // Asegurar que siempre se devuelva un array
+            const data = response.data;
+            return Array.isArray(data) ? data : [];
+        } catch (error) {
+            console.error("Error al listar backups:", error);
+            
+            if (error.response?.status === 403 || error.response?.status === 401) {
+                throw new Error('No tienes permisos para listar backups');
+            } else if (error.response?.status === 500) {
+                throw new Error('Error del servidor al listar backups');
+            }
+            
+            throw error;
+        }
+    }
+
+    /**
+     * Descargar un backup específico por nombre
+     */
+    async downloadSpecificBackup(fileName) {
+        try {
+            if (!fileName) {
+                throw new Error('Debe proporcionar el nombre del archivo');
+            }
+
+            const response = await api.get(`${API_URL}/download/${encodeURIComponent(fileName)}`, {
+                responseType: 'blob',
+                timeout: 300000 // 5 minutos timeout
+            });
+
+            // Verificar que la respuesta tiene contenido
+            if (!response.data || response.data.size === 0) {
+                throw new Error('El backup descargado está vacío');
+            }
+
+            // Crear un enlace temporal para descargar el archivo
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            
+            // Limpiar URL temporal
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+            }, 100);
+            
+            return { success: true, fileName, size: response.data.size };
+        } catch (error) {
+            console.error("Error al descargar backup específico:", error);
+            
+            if (error.response) {
+                if (error.response.status === 403 || error.response.status === 401) {
+                    throw new Error('No tienes permisos para descargar este backup');
+                } else if (error.response.status === 404) {
+                    throw new Error('Backup no encontrado');
+                } else if (error.response.status === 400) {
+                    throw new Error('Nombre de archivo inválido');
+                } else if (error.response.status === 500) {
+                    throw new Error('Error del servidor al descargar el backup');
+                }
+            } else if (error.request) {
+                throw new Error('No se pudo conectar con el servidor');
+            }
+            
+            throw error;
+        }
+    }
+
+    /**
+     * Eliminar un backup específico
+     */
+    async deleteBackup(fileName) {
+        try {
+            if (!fileName) {
+                throw new Error('Debe proporcionar el nombre del archivo');
+            }
+
+            const response = await api.delete(`${API_URL}/${encodeURIComponent(fileName)}`);
+            return response.data;
+        } catch (error) {
+            console.error("Error al eliminar backup:", error);
+            
+            if (error.response) {
+                if (error.response.status === 403 || error.response.status === 401) {
+                    throw new Error('No tienes permisos para eliminar backups');
+                } else if (error.response.status === 404) {
+                    throw new Error('Backup no encontrado');
+                } else if (error.response.status === 400) {
+                    throw new Error('Nombre de archivo inválido');
+                } else if (error.response.status === 500) {
+                    throw new Error('Error del servidor al eliminar el backup');
+                }
+            } else if (error.request) {
+                throw new Error('No se pudo conectar con el servidor');
+            }
+            
+            throw error;
+        }
+    }
 }
 
 export default new BackupService();

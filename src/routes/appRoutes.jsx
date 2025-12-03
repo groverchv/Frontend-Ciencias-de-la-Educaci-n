@@ -13,6 +13,7 @@ import GestionarSub_Menu from "../pages/Dashboard/PaqueteContenido/GestionarSub_
 import GestionarContenido from "../pages/Dashboard/PaqueteContenido/Contenido/GestionarContenido";
 import ContentEditor from "../pages/Dashboard/PaqueteContenido/Contenido/ContentEditor";
 import GestionarPresentacion from "../pages/Dashboard/GestionarPresentacion";
+import GestionarBackup from "../pages/Dashboard/GestionarBackup";
 import ContenidoDinamico from "../components/Dashboard/ContenidoDinamico";
 
 
@@ -40,6 +41,7 @@ export default function AppRoutes() {
         <Route path="roles" element={<GestionarRol />} />
         <Route path="rol-usuario" element={<GestionarRolUsuario />} />
         <Route path="presentacion" element={<GestionarPresentacion />} />
+        <Route path="backup" element={<GestionarBackup />} />
       </Route>
 
       {/* Ruta dinámica para contenido de bloques - captura cualquier ruta */}
