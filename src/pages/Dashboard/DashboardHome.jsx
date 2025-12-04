@@ -20,6 +20,7 @@ import MenuService from "../../services/MenuService.js";
 import Sub_MenuService from "../../services/Sub_MenuService.js";
 import ContenidoService from "../../services/ContenidoService.js";
 import WebSocketService from "../../services/WebSocketService.js";
+import NotificationService from "../../services/NotificationService.js";
 import { useBackupNotifications } from "../../hooks/useBackupNotifications.js";
 
 const { Title, Text } = Typography;
@@ -34,6 +35,11 @@ export default function DashboardHome() {
     otherPages: 0 
   });
   const [wsConnected, setWsConnected] = useState(false);
+  const [wsEnabled, setWsEnabled] = useState(() => {
+    // Leer estado guardado en localStorage, por defecto false
+    const saved = localStorage.getItem('wsEnabled');
+    return saved === 'true';
+  });
   
   // Usar el hook de notificaciones de backup
   useBackupNotifications();
@@ -41,12 +47,10 @@ export default function DashboardHome() {
   // Obtener usuario al cargar el componente
   useEffect(() => {
     const currentUser = AuthService.getCurrentUser();
-    console.log('Usuario actual:', currentUser);
     setUser(currentUser);
     
     // Cargar estadísticas inmediatamente
     fetchStatistics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   const [stats, setStats] = useState({
@@ -130,35 +134,36 @@ export default function DashboardHome() {
   };
 
   useEffect(() => {
-    // Conectar WebSocket SIEMPRE (con o sin autenticación)
-    // Si hay usuario autenticado, usar su username, sino usar "anonymous"
-    const username = user?.username || 'anonymous';
-    const location = 'dashboard'; // Esta página es el dashboard
+    // Solo conectar WebSocket si está habilitado
+    if (!wsEnabled) {
+      setWsConnected(false);
+      return;
+    }
     
-    console.log('Iniciando conexión WebSocket - Usuario:', username, 'Ubicación:', location);
+    // Conectar WebSocket (con o sin autenticación)
+    const username = user?.username || 'anonymous';
+    const location = 'dashboard';
     
     WebSocketService.connect(
       username,
       location,
       () => {
-        console.log('WebSocket conectado exitosamente -', username, 'en', location);
         setWsConnected(true);
         
         // Suscribirse a actualizaciones de usuarios conectados
         WebSocketService.subscribe('/topic/users-count', (data) => {
-          console.log('Datos de usuarios conectados recibidos:', data);
-          
-          // Verificar si data es un objeto con total, dashboard y otherPages
           if (typeof data === 'object' && data.total !== undefined) {
             setConnectedUsers({
               total: data.total || 0,
               dashboard: data.dashboard || 0,
               otherPages: data.otherPages || 0
             });
-          } else {
-            // Fallback por si acaso recibe solo un número
-            console.warn('Formato de datos inesperado:', data);
           }
+        });
+        
+        // Suscribirse a notificaciones de nuevo contenido publicado
+        WebSocketService.subscribe('/topic/contenido-publicado', (data) => {
+          mostrarNotificacionContenido(data);
         });
       },
       (error) => {
@@ -168,10 +173,37 @@ export default function DashboardHome() {
     );
 
     return () => {
-      console.log('Desconectando WebSocket...');
-      WebSocketService.disconnect();
+      if (wsEnabled) {
+        WebSocketService.disconnect();
+      }
     };
-  }, [user]); // Ejecutar cuando user cambie (pero también se ejecuta con null)
+  }, [user, wsEnabled]); // Ejecutar cuando cambie user o wsEnabled
+  
+  // Función para mostrar notificación de nuevo contenido
+  const mostrarNotificacionContenido = async (data) => {
+    try {
+      // Usar el servicio de notificaciones
+      await NotificationService.showContentNotification(data);
+    } catch (error) {
+      console.error('Error al mostrar notificación:', error);
+    }
+  };
+  
+  // Función para alternar WebSocket
+  const toggleWebSocket = (enabled) => {
+    setWsEnabled(enabled);
+    localStorage.setItem('wsEnabled', enabled.toString());
+    
+    if (!enabled && wsConnected) {
+      WebSocketService.disconnect();
+      setWsConnected(false);
+    }
+  };
+  
+  // Inicializar Service Worker y solicitar permisos de notificación al montar
+  useEffect(() => {
+    NotificationService.init();
+  }, []);
 
   if (loading) {
     return (
@@ -199,12 +231,51 @@ export default function DashboardHome() {
 
   return (
     <div>
-      <Title level={2}>
-        Bienvenido, {user?.nombre} {user?.apellido}
-      </Title>
-      <Text type="secondary" style={{ fontSize: 16 }}>
-        Panel de Administración - Ciencias de la Educación
-      </Text>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <Title level={2} style={{ margin: 0 }}>
+            Bienvenido, {user?.nombre} {user?.apellido}
+          </Title>
+          <Text type="secondary" style={{ fontSize: 16 }}>
+            Panel de Administración - Ciencias de la Educación
+          </Text>
+        </div>
+        
+        {/* Control de WebSocket */}
+        <Card size="small" style={{ minWidth: 280 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Text strong>🔔 Notificaciones en Tiempo Real</Text>
+            <Text type="secondary" style={{ fontSize: 12, marginBottom: 8 }}>
+              {wsEnabled 
+                ? '📢 Recibirás notificaciones con sonido cuando se publique contenido nuevo' 
+                : '🔕 Notificaciones desactivadas - No recibirás alertas'}
+            </Text>
+            <Radio.Group 
+              value={wsEnabled} 
+              onChange={(e) => toggleWebSocket(e.target.value)}
+              buttonStyle="solid"
+            >
+              <Radio.Button value={false}>
+                <Space>
+                  <span>❌</span>
+                  <span>Desactivado</span>
+                </Space>
+              </Radio.Button>
+              <Radio.Button value={true}>
+                <Space>
+                  <WifiOutlined spin={wsConnected} />
+                  <span>Activado</span>
+                </Space>
+              </Radio.Button>
+            </Radio.Group>
+            {wsEnabled && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {wsConnected ? '🟢 Conectado - Escuchando notificaciones' : '🔴 Conectando...'}
+              </Text>
+            )}
+          </Space>
+        </Card>
+      </div>
 
       {/* Main Statistics Cards */}
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>

@@ -22,6 +22,8 @@ import {
   LinkOutlined,
   AppstoreOutlined,
   OrderedListOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
 } from "@ant-design/icons";
 
 // Importación masiva de iconos
@@ -180,11 +182,25 @@ export default function GestionarMenu() {
     },
     { title: "Orden", dataIndex: "orden", key: "orden", align: "center", sorter: (a, b) => a.orden - b.orden },
     {
-      title: "Estado",
+      title: "Visibilidad",
       dataIndex: "estado",
       key: "estado",
       align: "center",
-      render: (estado) => <Tag color={estado ? "green" : "red"}>{estado ? "Activo" : "Inactivo"}</Tag>,
+      render: (estado) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          {estado ? (
+            <>
+              <EyeOutlined style={{ fontSize: 18, color: '#52c41a' }} />
+              <span style={{ color: '#52c41a', fontWeight: 500 }}>Visible</span>
+            </>
+          ) : (
+            <>
+              <EyeInvisibleOutlined style={{ fontSize: 18, color: '#d9d9d9' }} />
+              <span style={{ color: '#8c8c8c' }}>Oculto</span>
+            </>
+          )}
+        </div>
+      ),
     },
     {
       title: "Usuario",

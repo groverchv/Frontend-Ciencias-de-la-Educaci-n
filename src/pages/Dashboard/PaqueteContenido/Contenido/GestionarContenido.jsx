@@ -22,7 +22,9 @@ import {
     FileTextOutlined,
     EditOutlined,
     PlusOutlined,
-    DeleteOutlined
+    DeleteOutlined,
+    EyeOutlined,
+    EyeInvisibleOutlined
 } from "@ant-design/icons";
 
 // Services
@@ -199,6 +201,33 @@ export default function GestionarContenido() {
             key: 'bloqueCount',
             width: 120,
             render: (count) => <Tag color="blue">{count || 0} bloques</Tag>
+        },
+        {
+            title: 'Visibilidad',
+            dataIndex: 'estado',
+            key: 'estado',
+            width: 120,
+            align: 'center',
+            render: (estado) => (
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    gap: 8 
+                }}>
+                    {estado ? (
+                        <>
+                            <EyeOutlined style={{ fontSize: 18, color: '#52c41a' }} />
+                            <span style={{ color: '#52c41a', fontWeight: 500 }}>Visible</span>
+                        </>
+                    ) : (
+                        <>
+                            <EyeInvisibleOutlined style={{ fontSize: 18, color: '#d9d9d9' }} />
+                            <span style={{ color: '#8c8c8c' }}>Oculto</span>
+                        </>
+                    )}
+                </div>
+            )
         },
         {
             title: 'Acciones',

@@ -36,18 +36,28 @@ export default function ContenidoDinamico() {
                 setLoading(true);
                 setError(null);
 
-                console.log("🔍 Buscando contenido para ruta:", ruta);
-
                 // 1. Buscar el SubMenu por su ruta
                 const allSubMenus = await Sub_MenuService.getAllSubMenu();
-                console.log("📋 Todos los SubMenus:", allSubMenus);
 
                 const foundSubMenu = allSubMenus.find((sm) => sm.ruta === ruta);
-                console.log("✅ SubMenu encontrado:", foundSubMenu);
 
                 if (!foundSubMenu) {
-                    console.error("❌ No se encontró SubMenu para la ruta:", ruta);
                     setError(`No se encontró contenido para la ruta: ${ruta}`);
+                    setLoading(false);
+                    return;
+                }
+
+                // Verificar que el SubMenu esté activo
+                if (!foundSubMenu.estado) {
+                    setError('Este contenido no está disponible públicamente');
+                    setLoading(false);
+                    return;
+                }
+
+                // Verificar que el Menú padre esté activo
+                const menu = foundSubMenu.menu_id || foundSubMenu.menu;
+                if (menu && !menu.estado) {
+                    setError('Este contenido no está disponible públicamente');
                     setLoading(false);
                     return;
                 }
@@ -56,45 +66,27 @@ export default function ContenidoDinamico() {
 
                 // 2. Obtener todos los Contenidos de este SubMenu
                 const contenidosData = await ContenidoService.getContenidosBySubMenu(foundSubMenu.id);
-                console.log("📄 Contenidos encontrados:", contenidosData);
-                console.log("📊 Total de contenidos:", contenidosData.length);
 
                 // 3. Para cada Contenido activo, cargar su contenidoHtml
                 const contenidosConHtml = [];
                 for (const contenido of contenidosData) {
-                    console.log(`\n🔎 Procesando contenido #${contenido.id}:`, contenido);
-                    console.log(`   - Título: ${contenido.titulo}`);
-                    console.log(`   - Estado: ${contenido.estado}`);
-
                     if (contenido.estado) {
                         try {
                             // Obtener el contenido completo con contenidoHtml
                             const contenidoCompleto = await ContenidoService.getContenidoById(contenido.id);
-                            console.log(`   - Contenido HTML presente:`, !!contenidoCompleto.contenidoHtml);
-                            if (contenidoCompleto.contenidoHtml) {
-                                console.log(`   - Longitud del HTML:`, contenidoCompleto.contenidoHtml.length);
-                                console.log(`   - Preview del HTML:`, contenidoCompleto.contenidoHtml.substring(0, 100) + '...');
-                            }
 
                             // Agregar contenido si tiene contenidoHtml
                             if (contenidoCompleto.contenidoHtml) {
-                                console.log(`   ✅ Contenido agregado a la lista`);
                                 contenidosConHtml.push(contenidoCompleto);
-                            } else {
-                                console.log(`   ⚠️ Contenido omitido (sin HTML)`);
                             }
                         } catch (err) {
-                            console.error(`❌ Error cargando contenido ${contenido.id}:`, err);
+                            console.error(`Error cargando contenido ${contenido.id}:`, err);
                         }
-                    } else {
-                        console.log(`   ⏭️ Contenido omitido (estado = false)`);
                     }
                 }
 
                 // Ordenar contenidos por orden
                 contenidosConHtml.sort((a, b) => (a.orden || 0) - (b.orden || 0));
-                console.log("\n✨ Contenidos finales a renderizar:", contenidosConHtml.length);
-                console.log("📦 Contenidos con datos:", contenidosConHtml);
                 setContenidos(contenidosConHtml);
             } catch (err) {
                 console.error("Error al cargar contenido:", err);
@@ -161,6 +153,9 @@ export default function ContenidoDinamico() {
                 margin: "0 auto",
                 padding: "40px 60px",
                 minHeight: "60vh",
+                background: "#ffffff",
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
             }}
         >
             {contenidos.map((contenido, idx) => (

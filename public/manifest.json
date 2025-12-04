@@ -1,0 +1,29 @@
+{
+  "name": "Ciencias de la Educación - UAGRM",
+  "short_name": "UAGRM Educación",
+  "description": "Portal de Ciencias de la Educación - Universidad Autónoma Gabriel René Moreno",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2600af",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/educacion.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "es-BO",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}
